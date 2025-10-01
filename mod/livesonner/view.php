@@ -173,7 +173,7 @@ echo html_writer::start_tag('div', ['class' => 'container my-5']);
             if (!empty($livesonner->isfinished)) {
                 echo html_writer::tag('h3', get_string('videosectiontitle', 'mod_livesonner'), ['class' => 'h4 mb-3']);
                 echo $videohtml;
-            } else {
+            } else if (has_capability('mod/livesonner:manage', $context)) {
                 echo html_writer::div(get_string('videoavailableafterfinish', 'mod_livesonner'), 'text-muted');
             }
         echo html_writer::end_tag('div');
