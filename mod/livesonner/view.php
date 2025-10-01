@@ -159,6 +159,8 @@ echo html_writer::start_tag('div', ['class' => 'container my-5']);
                 $buttonattrs['aria-disabled'] = 'true';
             } else {
                 $buttonattrs['href'] = $buttonurl;
+                $buttonattrs['target'] = '_blank';
+                $buttonattrs['rel'] = 'noopener noreferrer';
             }
 
             echo html_writer::tag('a', $buttonlabel, $buttonattrs);
