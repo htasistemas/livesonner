@@ -38,6 +38,7 @@ $PAGE->set_url('/mod/livesonner/view.php', ['id' => $cm->id]);
 $PAGE->set_title(format_string($livesonner->name));
 $PAGE->set_heading(format_string($course->fullname));
 $PAGE->add_body_class('mod-livesonner');
+$PAGE->activityheader->disable();
 
 if ($action === 'join') {
     require_sesskey();
