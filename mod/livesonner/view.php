@@ -98,7 +98,8 @@ $event = \mod_livesonner\event\course_module_viewed::create([
 ]);
 $event->trigger();
 
-completion_info::update_state_by_event($course, $cm, COMPLETION_VIEWED);
+$completion = new completion_info($course);
+$completion->set_module_viewed($cm);
 
 $now = time();
 $remaining = $livesonner->timestart - $now;
