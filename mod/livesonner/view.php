@@ -186,15 +186,37 @@ if (has_capability('mod/livesonner:manage', $context)) {
     echo html_writer::start_tag('div', ['class' => 'container my-4']);
         echo html_writer::tag('h3', get_string('attendanceheading', 'mod_livesonner'), ['class' => 'h4']);
         if ($attendances) {
-            echo html_writer::start_tag('ul', ['class' => 'list-group']);
-            foreach ($attendances as $attendance) {
-                $user = core_user::get_user($attendance->userid);
-                $line = fullname($user) . ' - ' . userdate($attendance->timeclicked, get_string('strftimedatetimeshort', 'core_langconfig'));
-                echo html_writer::tag('li', $line, ['class' => 'list-group-item']);
-            }
-            echo html_writer::end_tag('ul');
+            $userids = array_map(static function($attendance) {
+                return $attendance->userid;
+            }, $attendances);
+            $users = user_get_users_by_id(array_unique($userids));
+
+            echo html_writer::div(get_string('attendancecount', 'mod_livesonner', count($attendances)), 'text-muted mb-3');
+            echo html_writer::start_tag('div', ['class' => 'table-responsive']);
+                echo html_writer::start_tag('table', ['class' => 'table table-striped table-hover']);
+                    echo html_writer::start_tag('thead');
+                        echo html_writer::start_tag('tr');
+                            echo html_writer::tag('th', get_string('attendanceuser', 'mod_livesonner'), ['scope' => 'col']);
+                            echo html_writer::tag('th', get_string('timeclicked', 'mod_livesonner'), ['scope' => 'col']);
+                        echo html_writer::end_tag('tr');
+                    echo html_writer::end_tag('thead');
+                    echo html_writer::start_tag('tbody');
+                        foreach ($attendances as $attendance) {
+                            if (!isset($users[$attendance->userid])) {
+                                $users[$attendance->userid] = core_user::get_user($attendance->userid);
+                            }
+                            $user = $users[$attendance->userid];
+                            $profileurl = new moodle_url('/user/view.php', ['id' => $user->id, 'course' => $course->id]);
+                            echo html_writer::start_tag('tr');
+                                echo html_writer::tag('td', html_writer::link($profileurl, fullname($user)), ['class' => 'align-middle']);
+                                echo html_writer::tag('td', userdate($attendance->timeclicked, get_string('strftimedatetimeshort', 'core_langconfig')), ['class' => 'align-middle']);
+                            echo html_writer::end_tag('tr');
+                        }
+                    echo html_writer::end_tag('tbody');
+                echo html_writer::end_tag('table');
+            echo html_writer::end_tag('div');
         } else {
-            echo html_writer::div(get_string('attendanceintro', 'mod_livesonner'), 'text-muted');
+            echo html_writer::div(get_string('attendanceempty', 'mod_livesonner'), 'text-muted');
         }
     echo html_writer::end_tag('div');
 }
