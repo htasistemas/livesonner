@@ -124,6 +124,8 @@ if (!empty($livesonner->isfinished)) {
 
 $videohtml = livesonner_render_video($context);
 
+$PAGE->requires->strings_for_js(['countdownmessage'], 'mod_livesonner');
+
 if (empty($livesonner->isfinished) && !$hasstarted) {
     $PAGE->requires->js_call_amd('mod_livesonner/countdown', 'init', [
         $livesonner->timestart,
