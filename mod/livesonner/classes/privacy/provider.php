@@ -51,6 +51,8 @@ class provider implements
             'timestart' => 'privacy:metadata:livesonner:timestart',
             'duration' => 'privacy:metadata:livesonner:duration',
             'meeturl' => 'privacy:metadata:livesonner:meeturl',
+            'teacherid' => 'privacy:metadata:livesonner:teacherid',
+            'recordingurl' => 'privacy:metadata:livesonner:recordingurl',
         ], 'privacy:metadata:livesonner');
 
         $collection->add_database_table('livesonner_attendance', [

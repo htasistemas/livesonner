@@ -23,6 +23,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 require_once($CFG->dirroot . '/course/moodleform_mod.php');
+require_once($CFG->dirroot . '/lib/enrollib.php');
 
 /**
  * Class mod_livesonner_mod_form
@@ -32,8 +33,6 @@ class mod_livesonner_mod_form extends moodleform_mod {
      * Defines the form elements.
      */
     public function definition() {
-        global $CFG;
-
         $mform = $this->_form;
 
         $mform->addElement('text', 'name', get_string('name'), ['size' => '64']);
@@ -55,9 +54,16 @@ class mod_livesonner_mod_form extends moodleform_mod {
         $mform->setType('meeturl', PARAM_URL);
         $mform->addRule('meeturl', null, 'required', null, 'client');
 
-        $videooptions = ['subdirs' => 0, 'maxbytes' => $CFG->maxbytes, 'maxfiles' => 1, 'accepted_types' => ['video']];
-        $mform->addElement('filemanager', 'video_filemanager', get_string('recordedvideo', 'mod_livesonner'), null, $videooptions);
-        $mform->addHelpButton('video_filemanager', 'recordedvideo', 'mod_livesonner');
+        $teacheroptions = $this->get_teacher_options();
+        $mform->addElement('autocomplete', 'teacherid', get_string('teacher', 'mod_livesonner'), $teacheroptions, [
+            'noselectionstring' => get_string('chooseateacher', 'mod_livesonner'),
+        ]);
+        $mform->setType('teacherid', PARAM_INT);
+        $mform->addRule('teacherid', null, 'required', null, 'client');
+
+        $mform->addElement('url', 'recordingurl', get_string('recordingurl', 'mod_livesonner'), ['size' => 64]);
+        $mform->setType('recordingurl', PARAM_URL);
+        $mform->addHelpButton('recordingurl', 'recordingurl', 'mod_livesonner');
 
         $this->standard_coursemodule_elements();
 
@@ -65,21 +71,30 @@ class mod_livesonner_mod_form extends moodleform_mod {
     }
 
     /**
-     * Preprocess form data before displaying
+     * Retrieve the list of users available to be selected as a teacher.
      *
-     * @param array $defaultvalues default values
+     * @return array<int, string>
      */
-    public function data_preprocessing(&$defaultvalues) {
-        global $CFG;
-
-        $videooptions = ['subdirs' => 0, 'maxbytes' => $CFG->maxbytes, 'maxfiles' => 1, 'accepted_types' => ['video']];
-        $contextid = $this->context->id ?? 0;
-        if (!empty($this->current->coursemodule)) {
-            $contextid = context_module::instance($this->current->coursemodule)->id;
+    protected function get_teacher_options(): array {
+        $courseid = $this->current->course ?? ($this->course->id ?? 0);
+        if (!$courseid) {
+            return [];
         }
 
-        $draftitemid = file_get_submitted_draft_itemid('video_filemanager');
-        file_prepare_draft_area($draftitemid, $contextid, 'mod_livesonner', 'video', 0, $videooptions);
-        $defaultvalues['video_filemanager'] = $draftitemid;
+        $context = context_course::instance($courseid);
+        $users = get_enrolled_users($context, '', 0, 'u.id, u.firstname, u.lastname, u.email');
+
+        $options = [];
+        foreach ($users as $user) {
+            $label = fullname($user);
+            if (!empty($user->email)) {
+                $label .= ' (' . $user->email . ')';
+            }
+            $options[$user->id] = $label;
+        }
+
+        core_collator::asort($options);
+
+        return $options;
     }
 }

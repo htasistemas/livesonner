@@ -23,6 +23,7 @@
 require_once(__DIR__ . '/../../config.php');
 require_once($CFG->libdir . '/completionlib.php');
 require_once($CFG->dirroot . '/user/lib.php');
+require_once(__DIR__ . '/lib.php');
 
 $id = required_param('id', PARAM_INT);
 $action = optional_param('action', '', PARAM_ALPHA);
@@ -33,6 +34,9 @@ $livesonner = $DB->get_record('livesonner', ['id' => $cm->instance], '*', MUST_E
 
 require_login($course, true, $cm);
 $context = context_module::instance($cm->id);
+
+$canmanage = livesonner_user_can_manage_session($livesonner, $context);
+$livesonner->recordingurl = (string)($livesonner->recordingurl ?? '');
 
 $PAGE->set_url('/mod/livesonner/view.php', ['id' => $cm->id]);
 $PAGE->set_title(format_string($livesonner->name));
@@ -71,7 +75,9 @@ if ($action === 'join') {
 
 if ($action === 'finalize') {
     require_sesskey();
-    require_capability('mod/livesonner:manage', $context);
+    if (!$canmanage) {
+        throw new required_capability_exception($context, 'mod/livesonner:manage', 'nopermissions', 'finalize');
+    }
 
     if (empty($livesonner->isfinished)) {
         $livesonner->isfinished = 1;
@@ -91,6 +97,29 @@ if ($action === 'finalize') {
     }
 
     redirect(new moodle_url('/mod/livesonner/view.php', ['id' => $cm->id]), $message, null, \core\output\notification::NOTIFY_SUCCESS);
+}
+
+if ($action === 'saverecording') {
+    require_sesskey();
+
+    if (!$canmanage) {
+        throw new required_capability_exception($context, 'mod/livesonner:manage', 'nopermissions', 'saverecording');
+    }
+
+    $recordingurl = optional_param('recordingurl', '', PARAM_RAW_TRIMMED);
+    $normalized = livesonner_get_normalized_recording_url($recordingurl);
+
+    if ($normalized === null) {
+        redirect(new moodle_url('/mod/livesonner/view.php', ['id' => $cm->id]),
+            get_string('invalidrecordingurl', 'mod_livesonner'), null, \core\output\notification::NOTIFY_ERROR);
+    }
+
+    $livesonner->recordingurl = $normalized;
+    $livesonner->timemodified = time();
+    $DB->update_record('livesonner', $livesonner);
+
+    redirect(new moodle_url('/mod/livesonner/view.php', ['id' => $cm->id]),
+        get_string('recordingsaved', 'mod_livesonner'), null, \core\output\notification::NOTIFY_SUCCESS);
 }
 
 $event = \mod_livesonner\event\course_module_viewed::create([
@@ -123,7 +152,7 @@ if (!empty($livesonner->isfinished)) {
     $statusmessage = get_string('countdownmessage', 'mod_livesonner', livesonner_format_interval($remaining));
 }
 
-$videohtml = livesonner_render_video($context);
+$videohtml = livesonner_render_recording($livesonner->recordingurl);
 
 $PAGE->requires->strings_for_js(['countdownmessage'], 'mod_livesonner');
 
@@ -147,6 +176,14 @@ echo html_writer::start_tag('div', ['class' => 'container my-5']);
             echo html_writer::start_tag('div', ['class' => 'd-flex flex-column flex-md-row gap-3 my-4 align-items-start']);
                 echo html_writer::div(html_writer::tag('span', get_string('starttimelabel', 'mod_livesonner', userdate($livesonner->timestart)), ['class' => 'badge bg-info text-dark fs-6 p-3']));
                 echo html_writer::div(html_writer::tag('span', get_string('durationlabel', 'mod_livesonner', $livesonner->duration), ['class' => 'badge bg-warning text-dark fs-6 p-3']));
+                if (!empty($livesonner->teacherid)) {
+                    $teacher = core_user::get_user($livesonner->teacherid);
+                    if ($teacher) {
+                        $teacherprofile = new moodle_url('/user/view.php', ['id' => $teacher->id, 'course' => $course->id]);
+                        $teachername = html_writer::link($teacherprofile, fullname($teacher));
+                        echo html_writer::div(html_writer::tag('span', get_string('assignedteacher', 'mod_livesonner', $teachername), ['class' => 'badge bg-success text-white fs-6 p-3']));
+                    }
+                }
             echo html_writer::end_tag('div');
 
             if ($statusmessage) {
@@ -166,7 +203,7 @@ echo html_writer::start_tag('div', ['class' => 'container my-5']);
 
             echo html_writer::tag('a', $buttonlabel, $buttonattrs);
 
-            if (has_capability('mod/livesonner:manage', $context) && empty($livesonner->isfinished)) {
+            if ($canmanage && empty($livesonner->isfinished)) {
                 $finishurl = new moodle_url('/mod/livesonner/view.php', ['id' => $cm->id, 'action' => 'finalize', 'sesskey' => sesskey()]);
                 echo html_writer::tag('a', get_string('finalizeclass', 'mod_livesonner'), ['href' => $finishurl, 'class' => 'btn btn-outline-danger mt-3']);
             }
@@ -176,7 +213,19 @@ echo html_writer::start_tag('div', ['class' => 'container my-5']);
             if (!empty($livesonner->isfinished)) {
                 echo html_writer::tag('h3', get_string('videosectiontitle', 'mod_livesonner'), ['class' => 'h4 mb-3']);
                 echo $videohtml;
-            } else if (has_capability('mod/livesonner:manage', $context)) {
+
+                if ($canmanage) {
+                    echo html_writer::tag('h4', get_string('recordingformtitle', 'mod_livesonner'), ['class' => 'h5 mt-4']);
+                    echo html_writer::div(get_string('recordingformdescription', 'mod_livesonner'), 'text-muted mb-3');
+
+                    $formurl = new moodle_url('/mod/livesonner/view.php', ['id' => $cm->id, 'action' => 'saverecording', 'sesskey' => sesskey()]);
+                    $form = html_writer::start_tag('form', ['method' => 'post', 'action' => $formurl]);
+                    $form .= html_writer::empty_tag('input', ['type' => 'text', 'name' => 'recordingurl', 'value' => s($livesonner->recordingurl), 'class' => 'form-control mb-2', 'placeholder' => get_string('recordingurlplaceholder', 'mod_livesonner')]);
+                    $form .= html_writer::empty_tag('input', ['type' => 'submit', 'class' => 'btn btn-primary', 'value' => get_string('saverecording', 'mod_livesonner')]);
+                    $form .= html_writer::end_tag('form');
+                    echo $form;
+                }
+            } else if ($canmanage) {
                 echo html_writer::div(get_string('videoavailableafterfinish', 'mod_livesonner'), 'text-muted');
             }
         echo html_writer::end_tag('div');
@@ -184,7 +233,7 @@ echo html_writer::start_tag('div', ['class' => 'container my-5']);
 
 echo html_writer::end_tag('div');
 
-if (has_capability('mod/livesonner:manage', $context)) {
+if ($canmanage) {
     $attendances = $DB->get_records('livesonner_attendance', ['livesonnerid' => $livesonner->id], 'timeclicked ASC');
     echo html_writer::start_tag('div', ['class' => 'container my-4']);
         echo html_writer::tag('h3', get_string('attendanceheading', 'mod_livesonner'), ['class' => 'h4']);
@@ -242,22 +291,26 @@ function livesonner_format_interval(int $seconds): string {
  * @param context_module $context context
  * @return string
  */
-function livesonner_render_video(context_module $context): string {
-    $fs = get_file_storage();
-    $files = $fs->get_area_files($context->id, 'mod_livesonner', 'video', 0, 'filename', false);
-
-    if (empty($files)) {
+function livesonner_render_recording(string $recordingurl): string {
+    if (empty($recordingurl)) {
         return html_writer::div(get_string('novideoavailable', 'mod_livesonner'), 'text-muted');
     }
 
-    $output = '';
-    foreach ($files as $file) {
-        $url = moodle_url::make_pluginfile_url($context->id, 'mod_livesonner', 'video', 0, $file->get_filepath(), $file->get_filename(), true);
-        $output .= html_writer::tag('video', html_writer::tag('source', '', ['src' => $url, 'type' => $file->get_mimetype()]), [
-            'class' => 'w-100 rounded shadow-sm',
-            'controls' => 'controls',
-        ]);
+    $videoid = livesonner_extract_youtube_id($recordingurl);
+    if ($videoid === null) {
+        $link = html_writer::link($recordingurl, $recordingurl, ['target' => '_blank', 'rel' => 'noopener noreferrer']);
+        return html_writer::div($link, 'text-break');
     }
 
-    return $output;
+    $embedurl = new moodle_url('https://www.youtube.com/embed/' . $videoid, ['rel' => 0, 'modestbranding' => 1]);
+
+    $iframe = html_writer::tag('iframe', '', [
+        'src' => $embedurl,
+        'title' => get_string('videosectiontitle', 'mod_livesonner'),
+        'allow' => 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share',
+        'allowfullscreen' => 'allowfullscreen',
+        'class' => 'w-100 h-100 border-0 rounded',
+    ]);
+
+    return html_writer::div(html_writer::div($iframe, 'ratio ratio-16x9'), 'recording-wrapper');
 }
