@@ -54,10 +54,12 @@ function livesonner_add_instance($data, $mform = null) {
     $data->timecreated = time();
     $data->timemodified = $data->timecreated;
     $data->isfinished = !empty($data->isfinished) ? 1 : 0;
+    $data->teacherid = $data->teacherid ?? 0;
+
+    $normalizedurl = livesonner_get_normalized_recording_url($data->recordingurl ?? '');
+    $data->recordingurl = $normalizedurl === null ? '' : $normalizedurl;
 
     $data->id = $DB->insert_record('livesonner', $data);
-
-    livesonner_save_video_files($data);
 
     return $data->id;
 }
@@ -75,10 +77,12 @@ function livesonner_update_instance($data, $mform = null) {
     $data->timemodified = time();
     $data->id = $data->instance;
     $data->isfinished = empty($data->isfinished) ? 0 : 1;
+    $data->teacherid = $data->teacherid ?? 0;
+
+    $normalizedurl = livesonner_get_normalized_recording_url($data->recordingurl ?? '');
+    $data->recordingurl = $normalizedurl === null ? '' : $normalizedurl;
 
     $result = $DB->update_record('livesonner', $data);
-
-    livesonner_save_video_files($data);
 
     return $result;
 }
@@ -96,12 +100,6 @@ function livesonner_delete_instance($id) {
         return false;
     }
 
-    if ($cm = get_coursemodule_from_instance('livesonner', $id, $livesonner->course, false, IGNORE_MISSING)) {
-        $context = context_module::instance($cm->id);
-        $fs = get_file_storage();
-        $fs->delete_area_files($context->id, 'mod_livesonner', 'video');
-    }
-
     $DB->delete_records('livesonner_attendance', ['livesonnerid' => $id]);
     $DB->delete_records('livesonner', ['id' => $id]);
 
@@ -109,67 +107,97 @@ function livesonner_delete_instance($id) {
 }
 
 /**
- * Saves the uploaded video file
+ * Determines if the current user can manage the session (finalise it, edit recording, view attendance).
  *
- * @param stdClass $data form data
- * @return void
+ * @param stdClass $livesonner LiveSonner record
+ * @param context_module $context activity context
+ * @return bool
  */
-function livesonner_save_video_files(stdClass $data): void {
-    global $CFG;
+function livesonner_user_can_manage_session(stdClass $livesonner, context_module $context): bool {
+    global $USER;
 
-    $cmid = $data->coursemodule ?? null;
-    if (!$cmid && !empty($data->id)) {
-        if ($cm = get_coursemodule_from_instance('livesonner', $data->id, $data->course ?? 0, false, IGNORE_MISSING)) {
-            $cmid = $cm->id;
-        }
+    if (has_capability('mod/livesonner:manage', $context)) {
+        return true;
     }
 
-    if (!$cmid) {
-        return;
-    }
-
-    $context = context_module::instance($cmid);
-    $options = ['subdirs' => 0, 'maxfiles' => 1, 'maxbytes' => $CFG->maxbytes, 'accepted_types' => ['video']];
-    $draftitemid = $data->video_filemanager ?? 0;
-    file_save_draft_area_files($draftitemid, $context->id, 'mod_livesonner', 'video', 0, $options);
+    return !empty($livesonner->teacherid) && (int)$livesonner->teacherid === (int)$USER->id;
 }
 
 /**
- * Serves files from the LiveSonner file areas
+ * Normalise a YouTube recording URL.
  *
- * @param stdClass $course course object
- * @param stdClass $cm course module object
- * @param context_module $context context
- * @param string $filearea file area name
- * @param array $args arguments
- * @param bool $forcedownload if forced download
- * @param array $options additional options
- * @return void
+ * Returns an empty string when no URL is provided, the canonical watch URL when the
+ * value is recognised as a valid YouTube link, or null when the URL is invalid.
+ *
+ * @param string|null $url raw URL provided by the user
+ * @return string|null
  */
-function livesonner_pluginfile($course, $cm, $context, $filearea, $args, $forcedownload, array $options = []) {
-    if ($context->contextlevel != CONTEXT_MODULE) {
-        send_file_not_found();
+function livesonner_get_normalized_recording_url(?string $url): ?string {
+    $url = trim((string)$url);
+    if ($url === '') {
+        return '';
     }
 
-    require_login($course, false, $cm);
-
-    if ($filearea !== 'video') {
-        send_file_not_found();
+    $videoid = livesonner_extract_youtube_id($url);
+    if ($videoid === null) {
+        return null;
     }
 
-    $fs = get_file_storage();
-    $itemid = 0;
-    $filename = array_pop($args);
-    $filepath = '/' . implode('/', $args) . '/';
-    if ($filepath === '//') {
-        $filepath = '/';
+    return 'https://www.youtube.com/watch?v=' . $videoid;
+}
+
+/**
+ * Extract the YouTube video identifier from a URL when possible.
+ *
+ * @param string $url URL to analyse
+ * @return string|null
+ */
+function livesonner_extract_youtube_id(string $url): ?string {
+    $parts = @parse_url(trim($url));
+    if (empty($parts['host'])) {
+        return null;
     }
 
-    if (!$file = $fs->get_file($context->id, 'mod_livesonner', 'video', $itemid, $filepath, $filename)) {
-        send_file_not_found();
+    $host = core_text::strtolower($parts['host']);
+    $path = isset($parts['path']) ? trim($parts['path'], '/') : '';
+
+    if ($host === 'youtu.be') {
+        $candidate = $path !== '' ? explode('/', $path)[0] : '';
+    } else if (preg_match('/(^|\.)youtube\.com$/', $host)) {
+        if ($path === 'watch') {
+            $query = [];
+            if (!empty($parts['query'])) {
+                parse_str($parts['query'], $query);
+            }
+            $candidate = $query['v'] ?? '';
+        } else if (strpos($path, 'embed/') === 0) {
+            $candidate = substr($path, strlen('embed/'));
+        } else if (strpos($path, 'shorts/') === 0) {
+            $candidate = substr($path, strlen('shorts/'));
+        } else if (strpos($path, 'live/') === 0) {
+            $candidate = substr($path, strlen('live/'));
+        } else {
+            $candidate = '';
+        }
+    } else {
+        return null;
     }
 
-    send_stored_file($file, 0, 0, $forcedownload, $options);
+    $candidate = trim($candidate);
+    if ($candidate === '') {
+        return null;
+    }
+
+    // Remove any trailing parameters from shortened URLs.
+    if (strpos($candidate, '?') !== false) {
+        $candidate = substr($candidate, 0, strpos($candidate, '?'));
+    }
+
+    if (!preg_match('/^[A-Za-z0-9_-]{11}$/', $candidate)) {
+        return null;
+    }
+
+    return $candidate;
 }
 
 /**
@@ -242,7 +270,5 @@ function livesonner_extend_navigation(navigation_node $navigation, stdClass $cou
  * @return array
  */
 function livesonner_get_file_areas($course, $cm, $context) {
-    return [
-        'video' => get_string('recordedvideo', 'mod_livesonner'),
-    ];
+    return [];
 }
