@@ -201,6 +201,201 @@ function livesonner_extract_youtube_id(string $url): ?string {
 }
 
 /**
+ * Retrieve the catalog of LiveSonner sessions for the Painel de aulas ao vivo integration.
+ *
+ * @param int $userid The user requesting the catalog
+ * @return array[] Array of session data formatted for the panel
+ */
+function mod_livesonner_painelaulas_get_catalog(int $userid): array {
+    return array_values(mod_livesonner_painelaulas_collect_sessions($userid));
+}
+
+/**
+ * Retrieve the user's enrolments for the Painel de aulas ao vivo integration.
+ *
+ * @param int $userid The user requesting the enrolments
+ * @return array[] Array of session data formatted for the panel
+ */
+function mod_livesonner_painelaulas_get_enrolments(int $userid): array {
+    $sessions = mod_livesonner_painelaulas_collect_sessions($userid);
+
+    return array_values(array_filter($sessions, static function(array $session): bool {
+        return !empty($session['isenrolled']);
+    }));
+}
+
+/**
+ * Try to enrol the given user into the course associated with the session.
+ *
+ * @param int $userid The user that should be enrolled
+ * @param int $sessionid LiveSonner session identifier
+ * @return array{status:bool,message:string} Result information for the panel
+ */
+function mod_livesonner_painelaulas_enrol_session(int $userid, int $sessionid): array {
+    global $CFG, $DB, $USER;
+
+    require_once($CFG->dirroot . '/enrol/lib.php');
+
+    $session = $DB->get_record('livesonner', ['id' => $sessionid]);
+    if (!$session) {
+        return [
+            'status' => false,
+            'message' => get_string('painelaulasinvalidsession', 'mod_livesonner'),
+        ];
+    }
+
+    $coursecontext = context_course::instance($session->course);
+
+    if ($USER->id !== $userid && !has_capability('mod/livesonner:manage', $coursecontext)) {
+        return [
+            'status' => false,
+            'message' => get_string('painelaulaspermissiondenied', 'mod_livesonner'),
+        ];
+    }
+
+    if (is_enrolled($coursecontext, $userid, '', true)) {
+        return [
+            'status' => true,
+            'message' => get_string('painelaulasalreadyenrolled', 'mod_livesonner'),
+        ];
+    }
+
+    $instances = enrol_get_instances($session->course, true);
+    $enrolled = false;
+
+    foreach ($instances as $instance) {
+        if ((int)$instance->status !== ENROL_INSTANCE_ENABLED) {
+            continue;
+        }
+
+        $plugin = enrol_get_plugin($instance->enrol);
+        if (!$plugin || !method_exists($plugin, 'enrol_user')) {
+            continue;
+        }
+
+        // Respect enrolment windows when defined.
+        $now = time();
+        if (!empty($instance->enrolstartdate) && (int)$instance->enrolstartdate > $now) {
+            continue;
+        }
+        if (!empty($instance->enrolenddate) && (int)$instance->enrolenddate !== 0 && (int)$instance->enrolenddate < $now) {
+            continue;
+        }
+
+        try {
+            $plugin->enrol_user($instance, $userid, $instance->roleid ?? null);
+            $enrolled = true;
+            break;
+        } catch (moodle_exception $exception) {
+            debugging($exception->getMessage(), DEBUG_DEVELOPER);
+        } catch (Exception $exception) {
+            debugging($exception->getMessage(), DEBUG_DEVELOPER);
+        }
+    }
+
+    if (!$enrolled && is_enrolled($coursecontext, $userid, '', true)) {
+        $enrolled = true;
+    }
+
+    if ($enrolled) {
+        return [
+            'status' => true,
+            'message' => get_string('painelaulasenrolmentsuccess', 'mod_livesonner'),
+        ];
+    }
+
+    return [
+        'status' => false,
+        'message' => get_string('painelaulasenrolmentfailure', 'mod_livesonner'),
+    ];
+}
+
+/**
+ * Internal helper that gathers the sessions the user can see from the database.
+ *
+ * @param int $userid The target user
+ * @return array[] Array of formatted session data keyed by session id
+ */
+function mod_livesonner_painelaulas_collect_sessions(int $userid): array {
+    global $CFG, $DB;
+
+    require_once($CFG->dirroot . '/user/lib.php');
+
+    $sql = "SELECT l.*, cm.id AS cmid, cm.visible AS cmvisible, c.fullname AS coursename,\n                   c.shortname AS courseshortname, c.visible AS coursevisible\n              FROM {livesonner} l\n        INNER JOIN {course} c ON c.id = l.course\n        INNER JOIN {modules} m ON m.name = :modname\n        INNER JOIN {course_modules} cm ON cm.instance = l.id AND cm.module = m.id\n             WHERE cm.deletioninprogress = 0\n          ORDER BY l.timestart ASC";
+
+    $records = $DB->get_records_sql($sql, ['modname' => 'livesonner']);
+
+    $sessions = [];
+    $teachercache = [];
+
+    foreach ($records as $record) {
+        $coursecontext = context_course::instance($record->course);
+        $modulecontext = context_module::instance($record->cmid);
+
+        if (!$record->coursevisible && !has_capability('moodle/course:viewhiddencourses', $coursecontext, $userid, false)) {
+            continue;
+        }
+
+        if (!$record->cmvisible && !has_capability('moodle/course:viewhiddenactivities', $modulecontext, $userid, false)) {
+            continue;
+        }
+
+        $isenrolled = is_enrolled($coursecontext, $userid, '', true);
+
+        $summary = '';
+        if (!empty($record->intro)) {
+            $summary = format_text($record->intro, $record->introformat, ['context' => $modulecontext, 'para' => false]);
+        }
+
+        $tags = [];
+        if (class_exists('core_tag_tag') && \core_tag_tag::is_enabled('mod_livesonner', 'livesonner')) {
+            $tags = array_values(\core_tag_tag::get_item_tags_array('mod_livesonner', 'livesonner', $record->id));
+        }
+
+        $instructor = null;
+        if (!empty($record->teacherid)) {
+            if (!array_key_exists($record->teacherid, $teachercache)) {
+                $teachercache[$record->teacherid] = core_user::get_user($record->teacherid);
+            }
+            $teacher = $teachercache[$record->teacherid];
+            if ($teacher) {
+                $instructor = [
+                    'id' => (int)$teacher->id,
+                    'fullname' => fullname($teacher),
+                    'profileurl' => (new moodle_url('/user/view.php', ['id' => $teacher->id, 'course' => $record->course]))->out(false),
+                ];
+            }
+        }
+
+        $durationseconds = ((int)$record->duration) * MINSECS;
+        $endtime = (int)$record->timestart + $durationseconds;
+
+        $sessions[$record->id] = [
+            'id' => (int)$record->id,
+            'cmid' => (int)$record->cmid,
+            'courseid' => (int)$record->course,
+            'coursename' => format_string($record->coursename, true, ['context' => $coursecontext]),
+            'courseshortname' => format_string($record->courseshortname, true, ['context' => $coursecontext]),
+            'name' => format_string($record->name, true, ['context' => $modulecontext]),
+            'summary' => $summary,
+            'starttime' => (int)$record->timestart,
+            'endtime' => $endtime,
+            'durationminutes' => (int)$record->duration,
+            'location' => (string)$record->meeturl,
+            'tags' => $tags,
+            'instructor' => $instructor,
+            'isenrolled' => $isenrolled,
+            'isfinished' => !empty($record->isfinished),
+            'launchurl' => (new moodle_url('/mod/livesonner/view.php', ['id' => $record->cmid]))->out(false),
+            'meetingurl' => (string)$record->meeturl,
+            'recordingurl' => (string)($record->recordingurl ?? ''),
+        ];
+    }
+
+    return $sessions;
+}
+
+/**
  * Obtains the information needed to display the module in the course overview
  *
  * @param cm_info $coursemodule course module
