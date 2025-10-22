@@ -86,3 +86,8 @@ $string['recordingformdescription'] = 'Paste the YouTube link of the recorded cl
 $string['recordingurlplaceholder'] = 'https://www.youtube.com/watch?v=XXXXXXXXXXX';
 $string['backtocourse'] = 'Back to the course';
 $string['nodetails'] = 'No information found for this class.';
+$string['painelaulasinvalidsession'] = 'The selected session could not be found.';
+$string['painelaulaspermissiondenied'] = 'You do not have permission to enrol this user in the session.';
+$string['painelaulasalreadyenrolled'] = 'You are already enrolled in the course for this session.';
+$string['painelaulasenrolmentsuccess'] = 'Enrolment completed successfully. You can now access the session.';
+$string['painelaulasenrolmentfailure'] = 'Unable to enrol you in the course for this session. Please contact the site administration.';

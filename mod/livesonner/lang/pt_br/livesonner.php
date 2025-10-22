@@ -86,3 +86,8 @@ $string['recordingformdescription'] = 'Cole o link do YouTube com a gravação d
 $string['recordingurlplaceholder'] = 'https://www.youtube.com/watch?v=XXXXXXXXXXX';
 $string['backtocourse'] = 'Voltar ao curso';
 $string['nodetails'] = 'Nenhuma informação encontrada para esta aula.';
+$string['painelaulasinvalidsession'] = 'Não foi possível localizar a sessão selecionada.';
+$string['painelaulaspermissiondenied'] = 'Você não tem permissão para matricular este usuário na sessão.';
+$string['painelaulasalreadyenrolled'] = 'Você já está matriculado no curso desta sessão.';
+$string['painelaulasenrolmentsuccess'] = 'Matrícula realizada com sucesso. Agora você pode acessar a sessão.';
+$string['painelaulasenrolmentfailure'] = 'Não foi possível realizar sua matrícula nesta sessão. Entre em contato com a administração do site.';
