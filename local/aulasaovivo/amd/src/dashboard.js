@@ -34,6 +34,36 @@ define(['core/ajax', 'core/notification'], function(Ajax, Notification) {
         formatters: {}
     };
 
+    /**
+     * Normalises locale strings into a BCP 47 compatible format.
+     *
+     * @param {String} locale
+     * @returns {String}
+     */
+    const normaliseLocale = locale => {
+        if (!locale) {
+            return 'pt-BR';
+        }
+
+        const segments = locale.replace(/_/g, '-').split('-').filter(Boolean);
+        if (segments.length === 0) {
+            return 'pt-BR';
+        }
+
+        const [language, region, ...rest] = segments;
+        const parts = [language.toLowerCase()];
+
+        if (region) {
+            parts.push(region.toUpperCase());
+        }
+
+        if (rest.length) {
+            parts.push(...rest);
+        }
+
+        return parts.join('-');
+    };
+
     const COUNTDOWN_INTERVAL = setInterval(() => {
         countdownRegistry.forEach(updateCountdown);
     }, 1000);
@@ -72,7 +102,7 @@ define(['core/ajax', 'core/notification'], function(Ajax, Notification) {
      * @returns {Object}
      */
     const buildFormatters = config => {
-        const locale = config.locale || 'pt-BR';
+        const locale = normaliseLocale(config.locale);
         const timezone = config.timezone && config.timezone !== '99' ? config.timezone : undefined;
         return {
             date: new Intl.DateTimeFormat(locale, { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: timezone }),
