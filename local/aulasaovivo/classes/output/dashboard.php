@@ -99,7 +99,7 @@ class dashboard implements renderable, templatable {
             'user' => [
                 'id' => $USER->id,
             ],
-            'locale' => current_language(),
+            'locale' => str_replace('_', '-', current_language()),
             'timezone' => \core_date::get_user_timezone(),
         ];
     }
