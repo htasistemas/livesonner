@@ -1,0 +1,16 @@
+<svg width="800" height="400" viewBox="0 0 800 400" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+    <title id="title">Banner placeholder</title>
+    <desc id="desc">Gradient placeholder image for the Moodle live classes dashboard.</desc>
+    <defs>
+        <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#0d6efd"/>
+            <stop offset="50%" stop-color="#6366f1"/>
+            <stop offset="100%" stop-color="#ec4899"/>
+        </linearGradient>
+    </defs>
+    <rect width="800" height="400" fill="url(#grad)"/>
+    <g fill="#ffffff" opacity="0.85" font-family="Roboto, Arial, sans-serif" font-weight="700" text-anchor="middle">
+        <text x="400" y="180" font-size="44">Painel de Aulas Moodle</text>
+        <text x="400" y="230" font-size="24" opacity="0.85">Configure o plugin para carregar seus eventos reais</text>
+    </g>
+</svg>

@@ -1,0 +1,5 @@
+<svg width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="icon-title">
+    <title id="icon-title">Painel de aulas</title>
+    <rect width="24" height="24" rx="5" fill="#0d6efd"/>
+    <path d="M6 7h12v2H6zM6 11h7v2H6zM6 15h10v2H6z" fill="#ffffff"/>
+</svg>

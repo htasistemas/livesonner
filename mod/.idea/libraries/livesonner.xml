@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="livesonner">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/livesonner.zip!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>
