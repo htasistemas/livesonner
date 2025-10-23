@@ -320,6 +320,7 @@ function mod_livesonner_painelaulas_collect_sessions(int $userid): array {
     global $CFG, $DB;
 
     require_once($CFG->dirroot . '/user/lib.php');
+    require_once($CFG->libdir . '/modinfolib.php');
 
     $now = time();
 
@@ -329,6 +330,7 @@ function mod_livesonner_painelaulas_collect_sessions(int $userid): array {
 
     $sessions = [];
     $teachercache = [];
+    $modinfocache = [];
 
     foreach ($records as $record) {
         $coursecontext = context_course::instance($record->course);
@@ -338,7 +340,25 @@ function mod_livesonner_painelaulas_collect_sessions(int $userid): array {
             continue;
         }
 
-        if (!$record->cmvisible && !has_capability('moodle/course:viewhiddenactivities', $modulecontext, $userid, false)) {
+        if (!array_key_exists($record->course, $modinfocache)) {
+            $modinfocache[$record->course] = get_fast_modinfo($record->course, $userid);
+        }
+
+        $modinfo = $modinfocache[$record->course];
+
+        if (!isset($modinfo->cms[$record->cmid])) {
+            continue;
+        }
+
+        $cminfo = $modinfo->cms[$record->cmid];
+        $isteacher = !empty($record->teacherid) && (int)$record->teacherid === $userid;
+        $canmanage = has_capability('mod/livesonner:manage', $modulecontext, $userid, false);
+        $canviewhidden = has_capability('moodle/course:viewhiddenactivities', $modulecontext, $userid, false);
+        $stealth = method_exists($cminfo, 'is_stealth') ? $cminfo->is_stealth() : false;
+        $availabilityinfo = trim((string)($cminfo->availableinfo ?? ''));
+
+        if (!$cminfo->uservisible && !$stealth && $availabilityinfo === '' && !$canmanage && !$canviewhidden && !$isteacher) {
+            // The user cannot access this activity at all.
             continue;
         }
 
@@ -356,6 +376,9 @@ function mod_livesonner_painelaulas_collect_sessions(int $userid): array {
         }
 
         $isenrolled = is_enrolled($coursecontext, $userid, '', true);
+        if (!$isenrolled && ($canmanage || $canviewhidden || $isteacher)) {
+            $isenrolled = true;
+        }
 
         $summary = '';
         if (!empty($record->intro)) {
@@ -383,6 +406,11 @@ function mod_livesonner_painelaulas_collect_sessions(int $userid): array {
             }
         }
 
+        $status = '';
+        if ($availabilityinfo !== '') {
+            $status = trim(html_to_text($availabilityinfo, 0));
+        }
+
         $sessions[$record->id] = [
             'id' => (int)$record->id,
             'cmid' => (int)$record->cmid,
@@ -403,6 +431,7 @@ function mod_livesonner_painelaulas_collect_sessions(int $userid): array {
             'launchurl' => (new moodle_url('/mod/livesonner/view.php', ['id' => $record->cmid]))->out(false),
             'meetingurl' => (string)$record->meeturl,
             'recordingurl' => (string)($record->recordingurl ?? ''),
+            'status' => $status,
         ];
     }
 
