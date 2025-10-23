@@ -40,8 +40,10 @@ class source {
         [$sessions, $usingfallback] = self::call_provider('painelaulas_get_catalog', [$userid],
             self::get_fallback_sessions_with_state($userid));
 
+        $sessions = array_map([self::class, 'normalise_session'], $sessions);
+
         return [
-            'sessions' => array_map([self::class, 'normalise_session'], $sessions),
+            'sessions' => array_values($sessions),
             'usingfallback' => $usingfallback,
         ];
     }
@@ -56,8 +58,10 @@ class source {
         [$sessions, $usingfallback] = self::call_provider('painelaulas_get_enrolments', [$userid],
             self::get_fallback_enrolments($userid));
 
+        $sessions = array_map([self::class, 'normalise_session'], $sessions);
+
         return [
-            'sessions' => array_map([self::class, 'normalise_session'], $sessions),
+            'sessions' => array_values($sessions),
             'usingfallback' => $usingfallback,
         ];
     }
