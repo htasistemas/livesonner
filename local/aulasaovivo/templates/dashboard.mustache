@@ -1,0 +1,64 @@
+<div id="{{rootid}}" class="aulasaovivo" data-region="aulasaovivo">
+    <div class="aulasaovivo__notice" data-region="fallback-notice" role="status" aria-live="polite" hidden>
+        <span>{{strings.fallbacknotice}}</span>
+    </div>
+    <div class="aulasaovivo__feedback" data-region="feedback" aria-live="polite"></div>
+    <div class="aulasaovivo__dashboard" data-region="dashboard">
+        <section class="aulasaovivo__panel" data-panel="catalog">
+            <header class="aulasaovivo__panel-header">
+                <div class="aulasaovivo__panel-titles">
+                    <span class="aulasaovivo__panel-title">{{strings.catalogtitle}}</span>
+                    <span class="aulasaovivo__panel-subtitle">{{strings.catalogsubtitle}}</span>
+                </div>
+                <button type="button" class="aulasaovivo__refresh" data-action="refresh" data-target="catalog">
+                    {{strings.refresh}}
+                </button>
+            </header>
+            <div class="aulasaovivo__panel-body">
+                <div class="aulasaovivo__carousel" data-region="carousel">
+                    <button type="button" class="aulasaovivo__nav aulasaovivo__nav--prev" data-action="scroll" data-direction="prev" aria-label="{{strings.previous}}">
+                        <span aria-hidden="true">&#10094;</span>
+                    </button>
+                    <div class="aulasaovivo__slides" data-region="cards"></div>
+                    <button type="button" class="aulasaovivo__nav aulasaovivo__nav--next" data-action="scroll" data-direction="next" aria-label="{{strings.next}}">
+                        <span aria-hidden="true">&#10095;</span>
+                    </button>
+                </div>
+                <div class="aulasaovivo__agenda">
+                    <div class="aulasaovivo__agenda-header">
+                        <h3 class="aulasaovivo__agenda-title">{{strings.agendatitlecatalog}}</h3>
+                    </div>
+                    <div class="aulasaovivo__agenda-list" data-region="agenda"></div>
+                </div>
+            </div>
+        </section>
+        <section class="aulasaovivo__panel" data-panel="enrolled">
+            <header class="aulasaovivo__panel-header">
+                <div class="aulasaovivo__panel-titles">
+                    <span class="aulasaovivo__panel-title">{{strings.enrolledtitle}}</span>
+                    <span class="aulasaovivo__panel-subtitle">{{strings.enrolledsubtitle}}</span>
+                </div>
+                <button type="button" class="aulasaovivo__refresh" data-action="refresh" data-target="enrolled">
+                    {{strings.refresh}}
+                </button>
+            </header>
+            <div class="aulasaovivo__panel-body">
+                <div class="aulasaovivo__carousel" data-region="carousel">
+                    <button type="button" class="aulasaovivo__nav aulasaovivo__nav--prev" data-action="scroll" data-direction="prev" aria-label="{{strings.previous}}">
+                        <span aria-hidden="true">&#10094;</span>
+                    </button>
+                    <div class="aulasaovivo__slides" data-region="cards"></div>
+                    <button type="button" class="aulasaovivo__nav aulasaovivo__nav--next" data-action="scroll" data-direction="next" aria-label="{{strings.next}}">
+                        <span aria-hidden="true">&#10095;</span>
+                    </button>
+                </div>
+                <div class="aulasaovivo__agenda">
+                    <div class="aulasaovivo__agenda-header">
+                        <h3 class="aulasaovivo__agenda-title">{{strings.agendatitleenrolled}}</h3>
+                    </div>
+                    <div class="aulasaovivo__agenda-list" data-region="agenda"></div>
+                </div>
+            </div>
+        </section>
+    </div>
+</div>
