@@ -321,6 +321,8 @@ function mod_livesonner_painelaulas_collect_sessions(int $userid): array {
 
     require_once($CFG->dirroot . '/user/lib.php');
 
+    $now = time();
+
     $sql = "SELECT l.*, cm.id AS cmid, cm.visible AS cmvisible, c.fullname AS coursename,\n                   c.shortname AS courseshortname, c.visible AS coursevisible\n              FROM {livesonner} l\n        INNER JOIN {course} c ON c.id = l.course\n        INNER JOIN {modules} m ON m.name = :modname\n        INNER JOIN {course_modules} cm ON cm.instance = l.id AND cm.module = m.id\n             WHERE cm.deletioninprogress = 0\n          ORDER BY l.timestart ASC";
 
     $records = $DB->get_records_sql($sql, ['modname' => 'livesonner']);
@@ -337,6 +339,19 @@ function mod_livesonner_painelaulas_collect_sessions(int $userid): array {
         }
 
         if (!$record->cmvisible && !has_capability('moodle/course:viewhiddenactivities', $modulecontext, $userid, false)) {
+            continue;
+        }
+
+        $starttime = (int)$record->timestart;
+        $durationseconds = max(0, (int)$record->duration * MINSECS);
+        $fallbackduration = $durationseconds ?: HOURSECS;
+        $endtime = $starttime ? $starttime + $fallbackduration : 0;
+
+        if (!empty($record->isfinished)) {
+            continue;
+        }
+
+        if ($endtime && $endtime <= $now) {
             continue;
         }
 
@@ -362,13 +377,11 @@ function mod_livesonner_painelaulas_collect_sessions(int $userid): array {
                 $instructor = [
                     'id' => (int)$teacher->id,
                     'fullname' => fullname($teacher),
+                    'name' => fullname($teacher),
                     'profileurl' => (new moodle_url('/user/view.php', ['id' => $teacher->id, 'course' => $record->course]))->out(false),
                 ];
             }
         }
-
-        $durationseconds = ((int)$record->duration) * MINSECS;
-        $endtime = (int)$record->timestart + $durationseconds;
 
         $sessions[$record->id] = [
             'id' => (int)$record->id,
@@ -378,8 +391,9 @@ function mod_livesonner_painelaulas_collect_sessions(int $userid): array {
             'courseshortname' => format_string($record->courseshortname, true, ['context' => $coursecontext]),
             'name' => format_string($record->name, true, ['context' => $modulecontext]),
             'summary' => $summary,
-            'starttime' => (int)$record->timestart,
+            'starttime' => $starttime,
             'endtime' => $endtime,
+            'duration' => $durationseconds,
             'durationminutes' => (int)$record->duration,
             'location' => (string)$record->meeturl,
             'tags' => $tags,

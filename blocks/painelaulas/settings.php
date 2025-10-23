@@ -25,7 +25,7 @@ if ($hassiteconfig) {
             'block_painelaulas/providercomponent',
             get_string('settings_providercomponent', 'block_painelaulas'),
             get_string('settings_providercomponent_desc', 'block_painelaulas'),
-            'mod_aulas',
+            'mod_livesonner',
             PARAM_COMPONENT
         ));
 

@@ -264,7 +264,7 @@ class source {
      */
     protected static function get_provider_component(): string {
         $component = (string)get_config('block_painelaulas', 'providercomponent');
-        return $component ?: 'mod_aulas';
+        return $component ?: 'mod_livesonner';
     }
 
     /**
