@@ -32,7 +32,7 @@ $PAGE->set_heading($pagetitle);
 $dashboard = new \local_aulasaovivo\output\dashboard();
 
 $PAGE->requires->css(new moodle_url('/local/aulasaovivo/styles.css'));
-$PAGE->requires->js_call_amd('local_aulasaovivo/dashboard', 'init', [$dashboard->get_js_config()]);
+$PAGE->requires->js_call_amd('local_aulasaovivo/dashboard', 'init', [$dashboard->get_rootid()]);
 
 echo $OUTPUT->header();
 echo $OUTPUT->heading($pagetitle, 2);

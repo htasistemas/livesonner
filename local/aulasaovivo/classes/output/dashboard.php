@@ -114,6 +114,7 @@ class dashboard implements renderable, templatable {
         return [
             'rootid' => $this->rootid,
             'strings' => $this->strings,
+            'configjson' => $this->get_config_json(),
         ];
     }
 
@@ -124,5 +125,23 @@ class dashboard implements renderable, templatable {
      */
     public function get_js_config(): array {
         return $this->jsconfig;
+    }
+
+    /**
+     * Returns the DOM configuration payload encoded as JSON.
+     *
+     * @return string
+     */
+    protected function get_config_json(): string {
+        return json_encode($this->jsconfig, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP);
+    }
+
+    /**
+     * Returns the root element identifier.
+     *
+     * @return string
+     */
+    public function get_rootid(): string {
+        return $this->rootid;
     }
 }

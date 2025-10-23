@@ -73,13 +73,32 @@ define(['core/ajax', 'core/notification'], function(Ajax, Notification) {
      *
      * @param {Object} config
      */
-    const init = config => {
-        if (!config || !config.rootid) {
+    const getConfigFromRoot = root => {
+        const raw = root.dataset.config;
+        if (!raw) {
+            return null;
+        }
+
+        try {
+            return JSON.parse(raw);
+        } catch (error) {
+            Notification.exception(error);
+            return null;
+        }
+    };
+
+    const init = rootid => {
+        if (!rootid) {
             return;
         }
 
-        const root = document.getElementById(config.rootid);
+        const root = document.getElementById(rootid);
         if (!root) {
+            return;
+        }
+
+        const config = getConfigFromRoot(root);
+        if (!config) {
             return;
         }
 
@@ -477,29 +496,29 @@ define(['core/ajax', 'core/notification'], function(Ajax, Notification) {
         const end = (entry.session.endtime || 0) ? entry.session.endtime * 1000 : fallbackEnd;
 
         let stateLabel = state.config.strings.agendaunconfirmed;
-        let state = 'past';
+        let entryState = 'past';
 
         if (!start || now < start) {
-            state = 'upcoming';
+            entryState = 'upcoming';
             stateLabel = state.config.strings.agendaunconfirmed;
             const diff = (start || now) - now;
             entry.countdown.innerHTML = `<span class="aulasaovivo__card-countdown-label">${state.config.strings.countdownlabel}</span>${formatDuration(diff)}`;
         } else if (now >= start && now <= end) {
-            state = 'live';
+            entryState = 'live';
             stateLabel = state.config.strings.agendalive;
             const remaining = Math.max(0, end - now);
             entry.countdown.innerHTML = `<span class="aulasaovivo__card-countdown-label">${state.config.strings.countdownlive}</span>${formatDuration(remaining)}`;
         } else {
-            state = 'past';
+            entryState = 'past';
             stateLabel = state.config.strings.agendapast;
             entry.countdown.innerHTML = `<span class="aulasaovivo__card-countdown-label">${state.config.strings.countdownfinished}</span>${buildDate(start)}`;
         }
 
-        entry.state = state;
-        entry.element.dataset.state = state;
+        entry.state = entryState;
+        entry.element.dataset.state = entryState;
 
         if (entry.agendaItem) {
-            entry.agendaItem.dataset.state = state;
+            entry.agendaItem.dataset.state = entryState;
             const status = entry.agendaItem.querySelector('.aulasaovivo__agenda-status');
             if (status) {
                 status.textContent = stateLabel;
