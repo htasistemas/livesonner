@@ -182,13 +182,29 @@ define(['core/ajax', 'core/notification'], function(Ajax, Notification) {
             if (response.usingfallback) {
                 state.fallback = true;
             }
-            const sessions = Array.isArray(response.sessions) ? response.sessions : [];
+            const sessions = normaliseSessions(response.sessions);
             renderPanel(type, sessions);
             return response;
         }).catch(error => {
             renderPanel(type, []);
             throw error;
         });
+    };
+
+    /**
+     * Ensures the sessions payload is an array.
+     *
+     * @param {Array|Object} data
+     * @returns {Array}
+     */
+    const normaliseSessions = data => {
+        if (Array.isArray(data)) {
+            return data;
+        }
+        if (!data || typeof data !== 'object') {
+            return [];
+        }
+        return Object.values(data);
     };
 
     /**
