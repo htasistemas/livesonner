@@ -54,7 +54,7 @@
             </KEYS>
             <INDEXES>
                 <INDEX NAME="enrolment_lookup" UNIQUE="true" FIELDS="livesonnerid, userid"/>
-                <INDEX NAME="userid" UNIQUE="false" FIELDS="userid"/>
+                <INDEX NAME="userid_idx" UNIQUE="false" FIELDS="userid"/>
             </INDEXES>
         </TABLE>
     </TABLES>
