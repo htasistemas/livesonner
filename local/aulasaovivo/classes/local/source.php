@@ -182,10 +182,13 @@ class source {
                 || !empty($session['is_enrolled']);
         }
 
+        $rawsummary = (string)($session['summary'] ?? $session['description'] ?? '');
+        $cleansummary = self::clean_summary($rawsummary);
+
         return [
             'id' => (int)($session['id'] ?? 0),
             'name' => format_string((string)($session['name'] ?? $session['title'] ?? '')),
-            'summary' => format_text((string)($session['summary'] ?? $session['description'] ?? ''), FORMAT_HTML, ['filter' => false]),
+            'summary' => format_text($cleansummary, FORMAT_HTML, ['filter' => false]),
             'starttime' => $starttime,
             'endtime' => $endtime,
             'timezone' => (string)($session['timezone'] ?? ''),
@@ -341,5 +344,30 @@ class source {
                 'launchurl' => '#',
             ],
         ];
+    }
+
+    /**
+     * Removes setup helper links from the fallback or provider summary.
+     *
+     * @param string $summary
+     * @return string
+     */
+    protected static function clean_summary(string $summary): string {
+        if ($summary === '') {
+            return $summary;
+        }
+
+        $patterns = [
+            '#<p[^>]*>\s*<a[^>]*href="[^"]*modedit\\.php\?add=livesonner[^>]*>.*?</a>\s*</p>#i',
+            '#<a[^>]*href="[^"]*modedit\\.php\?add=livesonner[^>]*>.*?</a>#i',
+            '#https?://[^\s"<]*modedit\\.php\?add=livesonner[^\s"<]*#i',
+        ];
+
+        $cleaned = preg_replace($patterns, '', $summary);
+        if ($cleaned === null) {
+            return $summary;
+        }
+
+        return trim($cleaned);
     }
 }
