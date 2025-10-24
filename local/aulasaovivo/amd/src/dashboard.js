@@ -168,13 +168,14 @@ define(['core/ajax', 'core/notification'], function(Ajax, Notification) {
                 const maxScroll = Math.max(0, list.scrollWidth - list.clientWidth);
                 const tolerance = 4;
                 const hasOverflow = maxScroll > tolerance;
+                const normalisedPosition = Math.max(0, Math.min(list.scrollLeft, maxScroll));
 
                 if (previous) {
-                    previous.hidden = !hasOverflow || list.scrollLeft <= tolerance;
+                    previous.hidden = !hasOverflow || normalisedPosition <= tolerance;
                 }
 
                 if (next) {
-                    next.hidden = !hasOverflow || list.scrollLeft >= (maxScroll - tolerance);
+                    next.hidden = !hasOverflow || normalisedPosition >= (maxScroll - tolerance);
                 }
             };
 
