@@ -81,7 +81,6 @@ function xmldb_livesonner_upgrade(int $oldversion): bool {
             $table->add_key('userid', XMLDB_KEY_FOREIGN, ['userid'], 'user', ['id']);
 
             $table->add_index('enrolment_lookup', XMLDB_INDEX_UNIQUE, ['livesonnerid', 'userid']);
-            $table->add_index('userid_idx', XMLDB_INDEX_NOTUNIQUE, ['userid']);
 
             $dbman->create_table($table);
         }
