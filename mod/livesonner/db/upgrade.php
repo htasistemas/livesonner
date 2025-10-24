@@ -67,5 +67,27 @@ function xmldb_livesonner_upgrade(int $oldversion): bool {
         upgrade_mod_savepoint(true, 2024052801, 'livesonner');
     }
 
+    if ($oldversion < 2024070100) {
+        $table = new xmldb_table('livesonner_enrolments');
+
+        if (!$dbman->table_exists($table)) {
+            $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
+            $table->add_field('livesonnerid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+            $table->add_field('userid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+            $table->add_field('timecreated', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+
+            $table->add_key('primary', XMLDB_KEY_PRIMARY, ['id']);
+            $table->add_key('livesonnerid', XMLDB_KEY_FOREIGN, ['livesonnerid'], 'livesonner', ['id']);
+            $table->add_key('userid', XMLDB_KEY_FOREIGN, ['userid'], 'user', ['id']);
+
+            $table->add_index('enrolment_lookup', XMLDB_INDEX_UNIQUE, ['livesonnerid', 'userid']);
+            $table->add_index('userid', XMLDB_INDEX_NOTUNIQUE, ['userid']);
+
+            $dbman->create_table($table);
+        }
+
+        upgrade_mod_savepoint(true, 2024070100, 'livesonner');
+    }
+
     return true;
 }

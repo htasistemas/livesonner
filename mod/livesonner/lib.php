@@ -101,6 +101,7 @@ function livesonner_delete_instance($id) {
     }
 
     $DB->delete_records('livesonner_attendance', ['livesonnerid' => $id]);
+    $DB->delete_records('livesonner_enrolments', ['livesonnerid' => $id]);
     $DB->delete_records('livesonner', ['id' => $id]);
 
     return true;
@@ -121,6 +122,28 @@ function livesonner_user_can_manage_session(stdClass $livesonner, context_module
     }
 
     return !empty($livesonner->teacherid) && (int)$livesonner->teacherid === (int)$USER->id;
+}
+
+/**
+ * Records an enrolment performed through the live classes dashboard.
+ *
+ * @param int $sessionid Session identifier
+ * @param int $userid User identifier
+ */
+function livesonner_register_dashboard_enrolment(int $sessionid, int $userid): void {
+    global $DB;
+
+    if ($DB->record_exists('livesonner_enrolments', ['livesonnerid' => $sessionid, 'userid' => $userid])) {
+        return;
+    }
+
+    $record = (object) [
+        'livesonnerid' => $sessionid,
+        'userid' => $userid,
+        'timecreated' => time(),
+    ];
+
+    $DB->insert_record('livesonner_enrolments', $record);
 }
 
 /**
@@ -254,6 +277,7 @@ function mod_livesonner_painelaulas_enrol_session(int $userid, int $sessionid): 
     }
 
     if (is_enrolled($coursecontext, $userid, '', true)) {
+        livesonner_register_dashboard_enrolment($session->id, $userid);
         return [
             'status' => true,
             'message' => get_string('painelaulasalreadyenrolled', 'mod_livesonner'),
@@ -298,6 +322,7 @@ function mod_livesonner_painelaulas_enrol_session(int $userid, int $sessionid): 
     }
 
     if ($enrolled) {
+        livesonner_register_dashboard_enrolment($session->id, $userid);
         return [
             'status' => true,
             'message' => get_string('painelaulasenrolmentsuccess', 'mod_livesonner'),
@@ -323,6 +348,7 @@ function mod_livesonner_painelaulas_collect_sessions(int $userid): array {
     require_once($CFG->libdir . '/modinfolib.php');
 
     $now = time();
+    $registrations = $DB->get_records_menu('livesonner_enrolments', ['userid' => $userid], '', 'livesonnerid, timecreated');
 
     $sql = "SELECT l.*, cm.id AS cmid, cm.visible AS cmvisible, c.fullname AS coursename,\n                   c.shortname AS courseshortname, c.visible AS coursevisible\n              FROM {livesonner} l\n        INNER JOIN {course} c ON c.id = l.course\n        INNER JOIN {modules} m ON m.name = :modname\n        INNER JOIN {course_modules} cm ON cm.instance = l.id AND cm.module = m.id\n             WHERE cm.deletioninprogress = 0\n          ORDER BY l.timestart ASC";
 
@@ -375,10 +401,8 @@ function mod_livesonner_painelaulas_collect_sessions(int $userid): array {
             continue;
         }
 
-        $isenrolled = is_enrolled($coursecontext, $userid, '', true);
-        if (!$isenrolled && ($canmanage || $canviewhidden || $isteacher)) {
-            $isenrolled = true;
-        }
+        $registrationtime = isset($registrations[$record->id]) ? (int)$registrations[$record->id] : 0;
+        $isregistered = $registrationtime > 0;
 
         $summary = '';
         if (!empty($record->intro)) {
@@ -426,7 +450,8 @@ function mod_livesonner_painelaulas_collect_sessions(int $userid): array {
             'location' => (string)$record->meeturl,
             'tags' => $tags,
             'instructor' => $instructor,
-            'isenrolled' => $isenrolled,
+            'isenrolled' => $isregistered,
+            'registrationtime' => $registrationtime,
             'isfinished' => !empty($record->isfinished),
             'launchurl' => (new moodle_url('/mod/livesonner/view.php', ['id' => $record->cmid]))->out(false),
             'meetingurl' => (string)$record->meeturl,

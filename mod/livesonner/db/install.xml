@@ -40,5 +40,22 @@
                 <INDEX NAME="livesonner_user" UNIQUE="true" FIELDS="livesonnerid, userid"/>
             </INDEXES>
         </TABLE>
+        <TABLE NAME="livesonner_enrolments" COMMENT="Stores dashboard registrations">
+            <FIELDS>
+                <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true" COMMENT="Primary key"/>
+                <FIELD NAME="livesonnerid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" COMMENT="Live class ID"/>
+                <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" COMMENT="User ID"/>
+                <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" COMMENT="Registration time"/>
+            </FIELDS>
+            <KEYS>
+                <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+                <KEY NAME="livesonnerid" TYPE="foreign" FIELDS="livesonnerid" REFTABLE="livesonner" REFFIELDS="id"/>
+                <KEY NAME="userid" TYPE="foreign" FIELDS="userid" REFTABLE="user" REFFIELDS="id"/>
+            </KEYS>
+            <INDEXES>
+                <INDEX NAME="enrolment_lookup" UNIQUE="true" FIELDS="livesonnerid, userid"/>
+                <INDEX NAME="userid" UNIQUE="false" FIELDS="userid"/>
+            </INDEXES>
+        </TABLE>
     </TABLES>
 </XMLDB>

@@ -234,15 +234,57 @@ echo html_writer::start_tag('div', ['class' => 'container my-5']);
 echo html_writer::end_tag('div');
 
 if ($canmanage) {
+    $registrations = $DB->get_records('livesonner_enrolments', ['livesonnerid' => $livesonner->id], 'timecreated ASC');
     $attendances = $DB->get_records('livesonner_attendance', ['livesonnerid' => $livesonner->id], 'timeclicked ASC');
+
+    $registrationusers = array_map(static function($registration) {
+        return $registration->userid;
+    }, $registrations ?: []);
+    $attendanceusers = array_map(static function($attendance) {
+        return $attendance->userid;
+    }, $attendances ?: []);
+
+    $userids = array_unique(array_merge($registrationusers, $attendanceusers));
+    $users = $userids ? user_get_users_by_id($userids) : [];
+
+    echo html_writer::start_tag('div', ['class' => 'container my-4']);
+        echo html_writer::tag('h3', get_string('registrationsheading', 'mod_livesonner'), ['class' => 'h4']);
+        if ($registrations) {
+            echo html_writer::div(get_string('registrationscount', 'mod_livesonner', count($registrations)), 'text-muted mb-3');
+            echo html_writer::start_tag('div', ['class' => 'table-responsive']);
+                echo html_writer::start_tag('table', ['class' => 'table table-striped table-hover']);
+                    echo html_writer::start_tag('thead');
+                        echo html_writer::start_tag('tr');
+                            echo html_writer::tag('th', get_string('registrationuser', 'mod_livesonner'), ['scope' => 'col']);
+                            echo html_writer::tag('th', get_string('registrationtime', 'mod_livesonner'), ['scope' => 'col']);
+                        echo html_writer::end_tag('tr');
+                    echo html_writer::end_tag('thead');
+                    echo html_writer::start_tag('tbody');
+                        foreach ($registrations as $registration) {
+                            if (!isset($users[$registration->userid])) {
+                                $users[$registration->userid] = core_user::get_user($registration->userid);
+                            }
+                            if (!$users[$registration->userid]) {
+                                continue;
+                            }
+                            $user = $users[$registration->userid];
+                            $profileurl = new moodle_url('/user/view.php', ['id' => $user->id, 'course' => $course->id]);
+                            echo html_writer::start_tag('tr');
+                                echo html_writer::tag('td', html_writer::link($profileurl, fullname($user)), ['class' => 'align-middle']);
+                                echo html_writer::tag('td', userdate($registration->timecreated, get_string('strftimedatetimeshort', 'core_langconfig')), ['class' => 'align-middle']);
+                            echo html_writer::end_tag('tr');
+                        }
+                    echo html_writer::end_tag('tbody');
+                echo html_writer::end_tag('table');
+            echo html_writer::end_tag('div');
+        } else {
+            echo html_writer::div(get_string('registrationsempty', 'mod_livesonner'), 'text-muted');
+        }
+    echo html_writer::end_tag('div');
+
     echo html_writer::start_tag('div', ['class' => 'container my-4']);
         echo html_writer::tag('h3', get_string('attendanceheading', 'mod_livesonner'), ['class' => 'h4']);
         if ($attendances) {
-            $userids = array_map(static function($attendance) {
-                return $attendance->userid;
-            }, $attendances);
-            $users = user_get_users_by_id(array_unique($userids));
-
             echo html_writer::div(get_string('attendancecount', 'mod_livesonner', count($attendances)), 'text-muted mb-3');
             echo html_writer::start_tag('div', ['class' => 'table-responsive']);
                 echo html_writer::start_tag('table', ['class' => 'table table-striped table-hover']);
@@ -256,6 +298,9 @@ if ($canmanage) {
                         foreach ($attendances as $attendance) {
                             if (!isset($users[$attendance->userid])) {
                                 $users[$attendance->userid] = core_user::get_user($attendance->userid);
+                            }
+                            if (!$users[$attendance->userid]) {
+                                continue;
                             }
                             $user = $users[$attendance->userid];
                             $profileurl = new moodle_url('/user/view.php', ['id' => $user->id, 'course' => $course->id]);

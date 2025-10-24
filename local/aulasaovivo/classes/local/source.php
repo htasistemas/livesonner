@@ -191,6 +191,7 @@ class source {
                 'avatar' => (string)($instructor['avatar'] ?? $instructor['image'] ?? ''),
             ],
             'isenrolled' => !empty($session['isenrolled']) || !empty($session['enrolled']) || !empty($session['is_enrolled']),
+            'registrationtime' => (int)($session['registrationtime'] ?? 0),
             'status' => (string)($session['status'] ?? ''),
         ];
     }

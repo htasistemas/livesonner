@@ -61,6 +61,12 @@ class provider implements
             'timeclicked' => 'privacy:metadata:livesonner_attendance:timeclicked',
         ], 'privacy:metadata:livesonner_attendance');
 
+        $collection->add_database_table('livesonner_enrolments', [
+            'livesonnerid' => 'privacy:metadata:livesonner_enrolments:livesonnerid',
+            'userid' => 'privacy:metadata:livesonner_enrolments:userid',
+            'timecreated' => 'privacy:metadata:livesonner_enrolments:timecreated',
+        ], 'privacy:metadata:livesonner_enrolments');
+
         return $collection;
     }
 
@@ -86,6 +92,16 @@ class provider implements
             'modname' => 'livesonner',
             'userid' => $userid,
         ];
+
+        $contextlist->add_from_sql($sql, $params);
+
+        $sql = "SELECT ctx.id
+                  FROM {context} ctx
+                  JOIN {course_modules} cm ON cm.id = ctx.instanceid AND ctx.contextlevel = :modulelevel
+                  JOIN {modules} m ON m.id = cm.module AND m.name = :modname
+                  JOIN {livesonner} l ON l.id = cm.instance
+                  JOIN {livesonner_enrolments} le ON le.livesonnerid = l.id
+                 WHERE le.userid = :userid";
 
         $contextlist->add_from_sql($sql, $params);
 
@@ -118,6 +134,21 @@ class provider implements
                 'userid' => $userid,
             ]);
 
+            $registration = $DB->get_record('livesonner_enrolments', [
+                'livesonnerid' => $livesonner->id,
+                'userid' => $userid,
+            ]);
+
+            if ($registration) {
+                $data = (object) [
+                    'name' => format_string($livesonner->name, true),
+                    'timecreated' => userdate($registration->timecreated),
+                    'meeturl' => $livesonner->meeturl,
+                ];
+
+                writer::with_context($context)->export_data(['registrations'], $data);
+            }
+
             if ($record) {
                 $data = (object) [
                     'name' => format_string($livesonner->name, true),
@@ -144,6 +175,7 @@ class provider implements
 
         $cm = get_coursemodule_from_id('livesonner', $context->instanceid, 0, false, MUST_EXIST);
         $DB->delete_records('livesonner_attendance', ['livesonnerid' => $cm->instance]);
+        $DB->delete_records('livesonner_enrolments', ['livesonnerid' => $cm->instance]);
     }
 
     /**
@@ -166,6 +198,7 @@ class provider implements
             }
             $cm = get_coursemodule_from_id('livesonner', $context->instanceid, 0, false, MUST_EXIST);
             $DB->delete_records('livesonner_attendance', ['livesonnerid' => $cm->instance, 'userid' => $userid]);
+            $DB->delete_records('livesonner_enrolments', ['livesonnerid' => $cm->instance, 'userid' => $userid]);
         }
     }
 
@@ -193,6 +226,14 @@ class provider implements
         ];
 
         $userlist->add_from_sql('userid', $sql, $params);
+
+        $sql = "SELECT le.userid
+                  FROM {livesonner_enrolments} le
+                  JOIN {course_modules} cm ON cm.instance = le.livesonnerid
+                  JOIN {modules} m ON m.id = cm.module AND m.name = :modname
+                 WHERE cm.id = :cmid";
+
+        $userlist->add_from_sql('userid', $sql, $params);
     }
 
     /**
@@ -218,5 +259,6 @@ class provider implements
         $params['livesonnerid'] = $cm->instance;
 
         $DB->delete_records_select('livesonner_attendance', "livesonnerid = :livesonnerid AND userid $insql", $params);
+        $DB->delete_records_select('livesonner_enrolments', "livesonnerid = :livesonnerid AND userid $insql", $params);
     }
 }
