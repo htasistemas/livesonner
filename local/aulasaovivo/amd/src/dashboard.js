@@ -69,6 +69,68 @@ define(['core/ajax', 'core/notification'], function(Ajax, Notification) {
     }, 1000);
 
     /**
+     * Performs a call to a Moodle AJAX service using the fetch API.
+     *
+     * This replicates the behaviour of core/ajax::call for the scenarios used in this
+     * dashboard while providing stricter control over the payload to avoid malformed
+     * JSON requests when third-party code tampers with the core Ajax module.
+     *
+     * @param {String} method
+     * @param {Object} [args]
+     * @returns {Promise<Object>}
+     */
+    const callService = (method, args = {}) => {
+        if (!method || typeof method !== 'string') {
+            return Promise.reject(new Error('Service method not provided.'));
+        }
+
+        const safeArgs = args && typeof args === 'object' ? { ...args } : {};
+        if (!window.fetch) {
+            const [fallback] = Ajax.call([{ methodname: method, args: safeArgs }]);
+            return fallback;
+        }
+        const baseUrl = (window.M && window.M.cfg && window.M.cfg.wwwroot) ? window.M.cfg.wwwroot : '';
+        if (!baseUrl) {
+            return Promise.reject(new Error('Unable to determine Moodle base URL.'));
+        }
+        const payload = [{
+            index: 0,
+            methodname: method,
+            args: safeArgs,
+        }];
+
+        const sesskey = (window.M && window.M.cfg && window.M.cfg.sesskey) ? window.M.cfg.sesskey : '';
+        const info = encodeURIComponent(method);
+        const endpoint = `${baseUrl}/lib/ajax/service.php?sesskey=${encodeURIComponent(sesskey)}&info=${info}`;
+
+        return window.fetch(endpoint, {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+            },
+            body: JSON.stringify(payload),
+        }).then(response => {
+            if (!response.ok) {
+                throw new Error(`Request failed with status ${response.status}`);
+            }
+            return response.json();
+        }).then(data => {
+            if (!Array.isArray(data) || typeof data[0] !== 'object') {
+                throw new Error('Unexpected service response.');
+            }
+
+            const entry = data[0];
+            if (entry.error) {
+                throw entry.exception || new Error(entry.message || 'Service error');
+            }
+
+            return entry.data;
+        });
+    };
+
+    /**
      * Initialises the dashboard.
      *
      * @param {Object} config
@@ -225,9 +287,8 @@ define(['core/ajax', 'core/notification'], function(Ajax, Notification) {
      */
     const loadPanel = type => {
         const method = type === 'catalog' ? state.config.services.catalog : state.config.services.enrolled;
-        const [request] = Ajax.call([{ methodname: method, args: {} }]);
 
-        return request.then(response => {
+        return callService(method).then(response => {
             if (response.usingfallback) {
                 state.fallback = true;
             }
@@ -694,16 +755,9 @@ define(['core/ajax', 'core/notification'], function(Ajax, Notification) {
      * @param {Object} entry
      */
     const enrolSession = entry => {
-        const [request] = Ajax.call([
-            {
-                methodname: state.config.services.enrol,
-                args: { sessionid: entry.session.id }
-            }
-        ]);
-
         applyButtonState(entry, state.config.strings.processing, 'secondary', true);
 
-        request.then(response => {
+        callService(state.config.services.enrol, { sessionid: entry.session.id }).then(response => {
             if (response.usingfallback) {
                 state.fallback = true;
             }
