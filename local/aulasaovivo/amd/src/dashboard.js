@@ -457,7 +457,6 @@ define(['core/ajax', 'core/notification'], function(Ajax, Notification) {
         const meta = document.createElement('div');
         meta.className = 'aulasaovivo__card-meta';
         appendMeta(meta, state.config.strings.startslabel, buildDateTime(session));
-        appendMeta(meta, state.config.strings.locationlabel, session.location);
         appendMeta(meta, state.config.strings.instructorlabel, session.instructor && session.instructor.name);
         info.appendChild(meta);
 
