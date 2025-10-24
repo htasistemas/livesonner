@@ -89,5 +89,11 @@ function xmldb_livesonner_upgrade(int $oldversion): bool {
         upgrade_mod_savepoint(true, 2024070100, 'livesonner');
     }
 
+    if ($oldversion < 2024070200) {
+        update_capabilities('mod_livesonner');
+
+        upgrade_mod_savepoint(true, 2024070200, 'livesonner');
+    }
+
     return true;
 }
