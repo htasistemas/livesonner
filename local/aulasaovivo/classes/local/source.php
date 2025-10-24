@@ -173,6 +173,15 @@ class source {
             $tags = [(string)$session['track']];
         }
 
+        $registrationtime = isset($session['registrationtime']) ? (int)$session['registrationtime'] : 0;
+
+        $isenrolled = $registrationtime > 0;
+        if (!$isenrolled) {
+            $isenrolled = !empty($session['isenrolled'])
+                || !empty($session['enrolled'])
+                || !empty($session['is_enrolled']);
+        }
+
         return [
             'id' => (int)($session['id'] ?? 0),
             'name' => format_string((string)($session['name'] ?? $session['title'] ?? '')),
@@ -190,8 +199,8 @@ class source {
                 'name' => format_string((string)($instructor['name'] ?? '')),
                 'avatar' => (string)($instructor['avatar'] ?? $instructor['image'] ?? ''),
             ],
-            'isenrolled' => !empty($session['isenrolled']) || !empty($session['enrolled']) || !empty($session['is_enrolled']),
-            'registrationtime' => (int)($session['registrationtime'] ?? 0),
+            'isenrolled' => $isenrolled,
+            'registrationtime' => $registrationtime,
             'status' => (string)($session['status'] ?? ''),
         ];
     }
