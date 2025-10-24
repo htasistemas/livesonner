@@ -131,6 +131,27 @@ define(['core/ajax', 'core/notification'], function(Ajax, Notification) {
     };
 
     /**
+     * Calculates the amount of pixels required to move to the next card.
+     *
+     * @param {HTMLElement} list
+     * @returns {Number}
+     */
+    const getScrollAmount = list => {
+        if (!list) {
+            return 0;
+        }
+
+        const card = list.querySelector('.aulasaovivo__card');
+        if (!card) {
+            return list.clientWidth;
+        }
+
+        const style = window.getComputedStyle(list);
+        const gap = parseFloat(style.columnGap || style.gap || '0') || 0;
+        return card.getBoundingClientRect().width + gap;
+    };
+
+    /**
      * Sets up navigation controls for carousels.
      */
     const setupNavigation = () => {
@@ -140,14 +161,83 @@ define(['core/ajax', 'core/notification'], function(Ajax, Notification) {
                 return;
             }
 
-            container.querySelectorAll(SELECTORS.nav).forEach(button => {
-                button.addEventListener('click', () => {
-                    const direction = button.dataset.direction === 'next' ? 1 : -1;
-                    const amount = list.clientWidth * 0.86;
-                    list.scrollBy({ left: amount * direction, behavior: 'smooth' });
-                });
-            });
+            const previous = container.querySelector('.aulasaovivo__nav--prev');
+            const next = container.querySelector('.aulasaovivo__nav--next');
+
+            const updateButtons = () => {
+                const maxScroll = Math.max(0, list.scrollWidth - list.clientWidth);
+                const tolerance = 4;
+                const hasOverflow = maxScroll > tolerance;
+
+                if (previous) {
+                    previous.hidden = !hasOverflow || list.scrollLeft <= tolerance;
+                }
+
+                if (next) {
+                    next.hidden = !hasOverflow || list.scrollLeft >= (maxScroll - tolerance);
+                }
+            };
+
+            const scrollToCard = direction => {
+                const amount = getScrollAmount(list);
+                if (!amount) {
+                    return;
+                }
+
+                const maxScroll = Math.max(0, list.scrollWidth - list.clientWidth);
+                if (maxScroll <= 0) {
+                    return;
+                }
+
+                const currentIndex = Math.round(list.scrollLeft / amount);
+                const maxIndex = Math.ceil(maxScroll / amount);
+                const targetIndex = Math.max(0, Math.min(currentIndex + direction, maxIndex));
+                const target = targetIndex * amount;
+
+                list.scrollTo({ left: target, behavior: 'smooth' });
+            };
+
+            if (previous) {
+                previous.addEventListener('click', () => scrollToCard(-1));
+            }
+
+            if (next) {
+                next.addEventListener('click', () => scrollToCard(1));
+            }
+
+            list.addEventListener('scroll', () => window.requestAnimationFrame(updateButtons));
+            window.addEventListener('resize', () => window.requestAnimationFrame(updateButtons));
+
+            container._aulasaovivoUpdateNav = updateButtons;
+            container._aulasaovivoScrollToStart = () => {
+                list.scrollTo({ left: 0, behavior: 'auto' });
+                updateButtons();
+            };
+
+            updateButtons();
         });
+    };
+
+    /**
+     * Resets scroll position and navigation state for a carousel.
+     *
+     * @param {HTMLElement} cards
+     */
+    const updateCarouselState = cards => {
+        if (!cards) {
+            return;
+        }
+
+        const container = cards.closest(SELECTORS.carousel);
+        if (!container) {
+            return;
+        }
+
+        if (typeof container._aulasaovivoScrollToStart === 'function') {
+            container._aulasaovivoScrollToStart();
+        } else if (typeof container._aulasaovivoUpdateNav === 'function') {
+            container._aulasaovivoUpdateNav();
+        }
     };
 
     /**
@@ -285,6 +375,7 @@ define(['core/ajax', 'core/notification'], function(Ajax, Notification) {
         resetCountdowns(type);
         cards.innerHTML = '';
         agenda.innerHTML = '';
+        cards.scrollLeft = 0;
 
         const sorted = sessions.slice().sort((a, b) => (a.starttime || 0) - (b.starttime || 0));
 
@@ -293,6 +384,7 @@ define(['core/ajax', 'core/notification'], function(Ajax, Notification) {
             empty.className = 'aulasaovivo__empty';
             empty.textContent = type === 'catalog' ? state.config.strings.emptycatalog : state.config.strings.emptyenrolled;
             cards.appendChild(empty);
+            updateCarouselState(cards);
             return;
         }
 
@@ -306,6 +398,8 @@ define(['core/ajax', 'core/notification'], function(Ajax, Notification) {
 
             registerCountdown(entry);
         });
+
+        updateCarouselState(cards);
     };
 
     /**
@@ -612,32 +706,34 @@ define(['core/ajax', 'core/notification'], function(Ajax, Notification) {
         const stateLabel = entry.state;
         const strings = state.config.strings;
 
-        if (stateLabel === 'upcoming') {
-            if (entry.panel === 'catalog') {
-                if (session.isenrolled) {
-                    applyButtonState(entry, strings.enrolledbadge, 'secondary', true);
+        if (entry.panel === 'catalog') {
+            if (!session.isenrolled) {
+                if (stateLabel === 'past') {
+                    applyButtonState(entry, strings.sessionclosed, 'secondary', true);
                 } else {
                     applyButtonState(entry, strings.enrolsession, 'primary', false);
                 }
+                return;
+            }
+
+            if (stateLabel === 'live') {
+                const hasUrl = Boolean(session.launchurl);
+                applyButtonState(entry, strings.accesssession, hasUrl ? 'success' : 'secondary', !hasUrl);
+            } else if (stateLabel === 'past') {
+                applyButtonState(entry, strings.sessionclosed, 'secondary', true);
             } else {
                 applyButtonState(entry, strings.enrolledbadge, 'secondary', true);
             }
-        } else if (stateLabel === 'live') {
-            if (entry.panel === 'catalog') {
-                if (session.isenrolled && session.launchurl) {
-                    applyButtonState(entry, strings.accesssession, 'success', false);
-                } else if (!session.isenrolled) {
-                    applyButtonState(entry, strings.enrolsession, 'primary', false);
-                } else {
-                    applyButtonState(entry, strings.accesssession, 'secondary', true);
-                }
-            } else {
-                const hasUrl = Boolean(session.launchurl);
-                applyButtonState(entry, strings.accesssession, hasUrl ? 'success' : 'secondary', !hasUrl);
-            }
+            return;
+        }
+
+        if (stateLabel === 'live') {
+            const hasUrl = Boolean(session.launchurl);
+            applyButtonState(entry, strings.accesssession, hasUrl ? 'success' : 'secondary', !hasUrl);
+        } else if (stateLabel === 'upcoming') {
+            applyButtonState(entry, strings.accesssession, 'secondary', true);
         } else {
-            const label = entry.panel === 'enrolled' ? strings.seemore : strings.sessionclosed;
-            applyButtonState(entry, label, 'secondary', true);
+            applyButtonState(entry, strings.seemore, 'secondary', true);
         }
     };
 
