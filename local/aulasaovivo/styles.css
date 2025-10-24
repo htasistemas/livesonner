@@ -127,9 +127,7 @@
 }
 
 .aulasaovivo__slides {
-    display: grid;
-    grid-auto-flow: column;
-    grid-auto-columns: minmax(0, 100%);
+    display: flex;
     gap: 16px;
     overflow-x: auto;
     scroll-snap-type: x mandatory;
@@ -184,7 +182,7 @@
     background: #f8fafc;
     border-radius: 14px;
     box-shadow: 0 12px 28px rgba(15, 23, 42, 0.16);
-    min-width: min(360px, 100%);
+    flex: 0 0 100%;
     width: 100%;
     max-width: 100%;
     scroll-snap-align: start;
