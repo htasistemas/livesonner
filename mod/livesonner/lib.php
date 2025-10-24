@@ -257,7 +257,7 @@ function mod_livesonner_painelaulas_get_enrolments(int $userid): array {
 function mod_livesonner_painelaulas_enrol_session(int $userid, int $sessionid): array {
     global $CFG, $DB, $USER;
 
-    require_once($CFG->dirroot . '/enrol/lib.php');
+    require_once($CFG->libdir . '/enrollib.php');
 
     $session = $DB->get_record('livesonner', ['id' => $sessionid]);
     if (!$session) {
