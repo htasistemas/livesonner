@@ -1,0 +1,11 @@
+.mod-livesonner .recording-wrapper {
+    width: 100%;
+}
+
+.mod-livesonner .recording-wrapper .recording-iframe {
+    display: block;
+    width: 100%;
+    height: min(60vh, 720px);
+    min-height: 320px;
+    background-color: #000;
+}

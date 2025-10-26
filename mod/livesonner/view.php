@@ -354,8 +354,8 @@ function livesonner_render_recording(string $recordingurl): string {
         'title' => get_string('videosectiontitle', 'mod_livesonner'),
         'allow' => 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share',
         'allowfullscreen' => 'allowfullscreen',
-        'class' => 'w-100 h-100 border-0 rounded',
+        'class' => 'recording-iframe w-100 border-0 rounded',
     ]);
 
-    return html_writer::div(html_writer::div($iframe, 'ratio ratio-16x9'), 'recording-wrapper');
+    return html_writer::div($iframe, 'recording-wrapper');
 }
