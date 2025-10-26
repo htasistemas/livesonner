@@ -23,7 +23,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 require_once($CFG->dirroot . '/course/moodleform_mod.php');
-require_once($CFG->dirroot . '/lib/enrollib.php');
+require_once($CFG->dirroot . '/user/lib.php');
 
 /**
  * Class mod_livesonner_mod_form
@@ -76,13 +76,10 @@ class mod_livesonner_mod_form extends moodleform_mod {
      * @return array<int, string>
      */
     protected function get_teacher_options(): array {
-        $courseid = $this->current->course ?? ($this->course->id ?? 0);
-        if (!$courseid) {
-            return [];
-        }
+        global $DB;
 
-        $context = context_course::instance($courseid);
-        $users = get_enrolled_users($context, '', 0, 'u.id, u.firstname, u.lastname, u.email');
+        $users = $DB->get_records_select('user', 'deleted = 0 AND suspended = 0', [], 'lastname ASC, firstname ASC',
+            'id, firstname, lastname, email');
 
         $options = [];
         foreach ($users as $user) {
