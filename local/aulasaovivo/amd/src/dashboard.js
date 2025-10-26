@@ -458,7 +458,12 @@ define(['core/ajax', 'core/notification'], function(Ajax, Notification) {
         const meta = document.createElement('div');
         meta.className = 'aulasaovivo__card-meta';
         appendMeta(meta, state.config.strings.startslabel, buildDateTime(session));
-        appendMeta(meta, state.config.strings.instructorlabel, session.instructor && session.instructor.name);
+        appendMeta(
+            meta,
+            state.config.strings.instructorlabel,
+            session.instructor && session.instructor.name,
+            {showLabel: false}
+        );
         info.appendChild(meta);
 
         if (Array.isArray(session.tags) && session.tags.length) {
@@ -529,13 +534,18 @@ define(['core/ajax', 'core/notification'], function(Ajax, Notification) {
      * @param {String} label
      * @param {String} value
      */
-    const appendMeta = (container, label, value) => {
+    const appendMeta = (container, label, value, options = {}) => {
         if (!value) {
             return;
         }
         const item = document.createElement('span');
         item.className = 'aulasaovivo__card-meta-item';
-        item.textContent = `${label}: ${value}`;
+        const showLabel = options.showLabel ?? true;
+        if (showLabel && label) {
+            item.textContent = `${label}: ${value}`;
+        } else {
+            item.textContent = value;
+        }
         container.appendChild(item);
     };
 
