@@ -43,11 +43,12 @@
     gap: 24px;
     max-width: 1120px;
     margin: 0 auto;
+    grid-template-columns: minmax(0, 1fr);
 }
 
 @media (min-width: 960px) {
     .aulasaovivo__dashboard {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
     }
 }
 
@@ -253,8 +254,8 @@
 }
 
 .aulasaovivo__card-meta {
-    display: flex;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
     gap: 10px 12px;
     font-size: 0.9rem;
     color: #4b5563;
@@ -264,6 +265,8 @@
     display: inline-flex;
     align-items: center;
     gap: 6px;
+    min-width: 0;
+    word-break: break-word;
 }
 
 .aulasaovivo__chip {
