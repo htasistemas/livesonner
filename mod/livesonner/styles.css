@@ -1,22 +1,44 @@
+/* ==========================================================
+   livesonner - estilos principais do módulo
+   ========================================================== */
+
+/* Wrapper do player ou gravação */
 .mod-livesonner .recording-wrapper {
     width: 100%;
 }
 
-.theme-moove#page-mod-livesonner-view .livesonner-container {
+/* Iframe da gravação */
+.mod-livesonner .recording-wrapper .recording-iframe {
+    display: block;
+    width: 100%;
+    height: min(60vh, 720px);
+    min-height: 320px;
+    background-color: #000;
+}
+
+/* ==========================================================
+   Ajustes específicos para o tema Moove
+   Corrige o problema de layout estreito em produção
+   ========================================================== */
+
+/* Container principal do módulo - ocupa toda a largura */
+body.theme-moove#page-mod-livesonner-view .livesonner-container {
     max-width: 100% !important;
     width: 100% !important;
     padding-left: 0 !important;
     padding-right: 0 !important;
 }
 
-.theme-moove#page-mod-livesonner-view .livesonner-card,
-.theme-moove#page-mod-livesonner-view .livesonner-card-body,
-.theme-moove#page-mod-livesonner-view .livesonner-card-footer {
-    width: 100%;
+/* Cartão e seções internas */
+body.theme-moove#page-mod-livesonner-view .livesonner-card,
+body.theme-moove#page-mod-livesonner-view .livesonner-card-body,
+body.theme-moove#page-mod-livesonner-view .livesonner-card-footer {
+    width: 100% !important;
 }
 
-.theme-moove#page-mod-livesonner-view #region-main-box,
-.theme-moove#page-mod-livesonner-view #region-main {
+/* Região principal do tema - remove limites de largura e padding */
+body.theme-moove#page-mod-livesonner-view #region-main-box,
+body.theme-moove#page-mod-livesonner-view #region-main {
     max-width: 100% !important;
     width: 100% !important;
     flex: 0 0 100% !important;
@@ -24,10 +46,13 @@
     padding-right: 0 !important;
 }
 
-.mod-livesonner .recording-wrapper .recording-iframe {
-    display: block;
-    width: 100%;
-    height: min(60vh, 720px);
-    min-height: 320px;
-    background-color: #000;
+/* ==========================================================
+   Ajuste geral de segurança (independente do tema)
+   ========================================================== */
+
+/* Garante que o módulo sempre ocupe toda a largura da tela */
+body#page-mod-livesonner-view .livesonner-container,
+body#page-mod-livesonner-view .livesonner-card {
+    width: 100% !important;
+    max-width: 100% !important;
 }

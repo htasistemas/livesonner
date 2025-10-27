@@ -35,6 +35,5 @@ $PAGE->requires->css(new moodle_url('/local/aulasaovivo/styles.css'));
 $PAGE->requires->js_call_amd('local_aulasaovivo/dashboard', 'init', [$dashboard->get_rootid()]);
 
 echo $OUTPUT->header();
-echo $OUTPUT->heading($pagetitle, 2);
 echo $OUTPUT->render_from_template('local_aulasaovivo/dashboard', $dashboard->export_for_template($OUTPUT));
 echo $OUTPUT->footer();
