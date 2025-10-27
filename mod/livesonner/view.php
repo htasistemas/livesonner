@@ -167,9 +167,9 @@ $PAGE->set_secondary_navigation(false);
 
 echo $OUTPUT->header();
 
-echo html_writer::start_tag('div', ['class' => 'container my-5']);
-    echo html_writer::start_tag('div', ['class' => 'card shadow-sm border-0']);
-        echo html_writer::start_tag('div', ['class' => 'card-body p-5']);
+echo html_writer::start_tag('div', ['class' => 'container-fluid my-5 px-3 px-md-4 px-lg-5 livesonner-container']);
+    echo html_writer::start_tag('div', ['class' => 'card shadow-sm border-0 livesonner-card']);
+        echo html_writer::start_tag('div', ['class' => 'card-body p-4 p-lg-5 livesonner-card-body']);
             echo html_writer::tag('h1', format_string($livesonner->name), ['class' => 'display-5 mb-3 text-primary']);
             echo html_writer::div(format_module_intro('livesonner', $livesonner, $cm->id), 'lead');
 
@@ -209,7 +209,7 @@ echo html_writer::start_tag('div', ['class' => 'container my-5']);
             }
         echo html_writer::end_tag('div');
 
-        echo html_writer::start_tag('div', ['class' => 'card-footer bg-light p-4']);
+        echo html_writer::start_tag('div', ['class' => 'card-footer bg-light p-3 p-lg-4 livesonner-card-footer']);
             if (!empty($livesonner->isfinished)) {
                 echo html_writer::tag('h3', get_string('videosectiontitle', 'mod_livesonner'), ['class' => 'h4 mb-3']);
                 echo $videohtml;
@@ -247,7 +247,7 @@ if ($canmanage) {
     $userids = array_unique(array_merge($registrationusers, $attendanceusers));
     $users = $userids ? user_get_users_by_id($userids) : [];
 
-    echo html_writer::start_tag('div', ['class' => 'container my-4']);
+    echo html_writer::start_tag('div', ['class' => 'container-fluid my-4 px-3 px-md-4 px-lg-5 livesonner-container']);
         echo html_writer::tag('h3', get_string('registrationsheading', 'mod_livesonner'), ['class' => 'h4']);
         if ($registrations) {
             echo html_writer::div(get_string('registrationscount', 'mod_livesonner', count($registrations)), 'text-muted mb-3');
@@ -282,7 +282,7 @@ if ($canmanage) {
         }
     echo html_writer::end_tag('div');
 
-    echo html_writer::start_tag('div', ['class' => 'container my-4']);
+    echo html_writer::start_tag('div', ['class' => 'container-fluid my-4 px-3 px-md-4 px-lg-5 livesonner-container']);
         echo html_writer::tag('h3', get_string('attendanceheading', 'mod_livesonner'), ['class' => 'h4']);
         if ($attendances) {
             echo html_writer::div(get_string('attendancecount', 'mod_livesonner', count($attendances)), 'text-muted mb-3');
