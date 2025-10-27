@@ -136,19 +136,19 @@ $remaining = $livesonner->timestart - $now;
 $hasstarted = $remaining <= 0;
 
 $buttonurl = new moodle_url('/mod/livesonner/view.php', ['id' => $cm->id, 'action' => 'join', 'sesskey' => sesskey()]);
-$buttonclass = 'btn btn-lg btn-primary btn-block';
+$buttonclass = 'btn btn-lg btn-primary btn-block livesonner-cta';
 $buttondisabled = false;
 $buttonlabel = get_string('joinclass', 'mod_livesonner');
 $statusmessage = '';
 
 if (!empty($livesonner->isfinished)) {
     $buttondisabled = true;
-    $buttonclass = 'btn btn-lg btn-secondary btn-block disabled';
+    $buttonclass = 'btn btn-lg btn-secondary btn-block livesonner-cta disabled';
     $buttonlabel = get_string('classfinished', 'mod_livesonner');
     $statusmessage = get_string('classfinished', 'mod_livesonner');
 } else if (!$hasstarted) {
     $buttondisabled = true;
-    $buttonclass = 'btn btn-lg btn-secondary btn-block disabled';
+    $buttonclass = 'btn btn-lg btn-secondary btn-block livesonner-cta disabled';
     $statusmessage = get_string('countdownmessage', 'mod_livesonner', livesonner_format_interval($remaining));
 }
 
@@ -167,70 +167,80 @@ $PAGE->set_secondary_navigation(false);
 
 echo $OUTPUT->header();
 
-echo html_writer::start_tag('div', ['class' => 'container my-5']);
-    echo html_writer::start_tag('div', ['class' => 'card shadow-sm border-0']);
-        echo html_writer::start_tag('div', ['class' => 'card-body p-5']);
-            echo html_writer::tag('h1', format_string($livesonner->name), ['class' => 'display-5 mb-3 text-primary']);
-            echo html_writer::div(format_module_intro('livesonner', $livesonner, $cm->id), 'lead');
+echo html_writer::start_tag('div', ['class' => 'mod-livesonner-view container-fluid py-5']);
+    echo html_writer::start_tag('div', ['class' => 'row justify-content-center']);
+        echo html_writer::start_tag('div', ['class' => 'col-12']);
+            echo html_writer::start_tag('div', ['class' => 'row align-items-start']);
+                echo html_writer::start_tag('div', ['class' => 'col-12 col-lg-8 mb-4']);
+                    echo html_writer::start_tag('section', ['class' => 'livesonner-card livesonner-main h-100']);
+                        echo html_writer::tag('h1', format_string($livesonner->name), ['class' => 'livesonner-title mb-4']);
+                        echo html_writer::div(format_module_intro('livesonner', $livesonner, $cm->id), 'lead livesonner-intro mb-4');
 
-            echo html_writer::start_tag('div', ['class' => 'd-flex flex-column flex-md-row gap-3 my-4 align-items-start']);
-                echo html_writer::div(html_writer::tag('span', get_string('starttimelabel', 'mod_livesonner', userdate($livesonner->timestart)), ['class' => 'badge bg-info text-dark fs-6 p-3']));
-                echo html_writer::div(html_writer::tag('span', get_string('durationlabel', 'mod_livesonner', $livesonner->duration), ['class' => 'badge bg-warning text-dark fs-6 p-3']));
-                if (!empty($livesonner->teacherid)) {
-                    $teacher = core_user::get_user($livesonner->teacherid);
-                    if ($teacher) {
-                        $teacherprofile = new moodle_url('/user/view.php', ['id' => $teacher->id, 'course' => $course->id]);
-                        $teachername = html_writer::link($teacherprofile, fullname($teacher));
-                        echo html_writer::div(html_writer::tag('span', get_string('assignedteacher', 'mod_livesonner', $teachername), ['class' => 'badge bg-success text-white fs-6 p-3']));
-                    }
-                }
+                        if ($statusmessage) {
+                            echo html_writer::div($statusmessage, 'alert alert-info fs-5 mb-4 livesonner-status', ['id' => 'livesonner-countdown']);
+                        } else {
+                            echo html_writer::div('', 'alert alert-info fs-5 d-none mb-4 livesonner-status', ['id' => 'livesonner-countdown']);
+                        }
+
+                        $buttonattrs = ['class' => $buttonclass . ' mb-3', 'role' => 'button'];
+                        if ($buttondisabled) {
+                            $buttonattrs['aria-disabled'] = 'true';
+                        } else {
+                            $buttonattrs['href'] = $buttonurl;
+                            $buttonattrs['target'] = '_blank';
+                            $buttonattrs['rel'] = 'noopener noreferrer';
+                        }
+
+                        echo html_writer::tag('a', $buttonlabel, $buttonattrs);
+                        echo html_writer::div(get_string('attendanceintro', 'mod_livesonner'), 'text-muted');
+
+                        if ($canmanage && empty($livesonner->isfinished)) {
+                            $finishurl = new moodle_url('/mod/livesonner/view.php', ['id' => $cm->id, 'action' => 'finalize', 'sesskey' => sesskey()]);
+                            echo html_writer::tag('a', get_string('finalizeclass', 'mod_livesonner'), ['href' => $finishurl, 'class' => 'btn btn-outline-danger btn-block btn-lg livesonner-finalize mt-4']);
+                        }
+                    echo html_writer::end_tag('section');
+                echo html_writer::end_tag('div');
+
+                echo html_writer::start_tag('div', ['class' => 'col-12 col-lg-4 mb-4']);
+                    echo html_writer::start_tag('aside', ['class' => 'livesonner-card livesonner-meta h-100']);
+                        echo html_writer::div(get_string('starttimelabel', 'mod_livesonner', userdate($livesonner->timestart)), 'livesonner-meta-item');
+                        echo html_writer::div(get_string('durationlabel', 'mod_livesonner', $livesonner->duration), 'livesonner-meta-item');
+                        if (!empty($livesonner->teacherid)) {
+                            $teacher = core_user::get_user($livesonner->teacherid);
+                            if ($teacher) {
+                                $teacherprofile = new moodle_url('/user/view.php', ['id' => $teacher->id, 'course' => $course->id]);
+                                $teachername = html_writer::link($teacherprofile, fullname($teacher));
+                                echo html_writer::div(get_string('assignedteacher', 'mod_livesonner', $teachername), 'livesonner-meta-item livesonner-meta-teacher');
+                            }
+                        }
+                    echo html_writer::end_tag('aside');
+                echo html_writer::end_tag('div');
             echo html_writer::end_tag('div');
 
-            if ($statusmessage) {
-                echo html_writer::div($statusmessage, 'alert alert-info fs-5', ['id' => 'livesonner-countdown']);
-            } else {
-                echo html_writer::div('', 'alert alert-info fs-5 d-none', ['id' => 'livesonner-countdown']);
-            }
-
-            $buttonattrs = ['class' => $buttonclass, 'role' => 'button'];
-            if ($buttondisabled) {
-                $buttonattrs['aria-disabled'] = 'true';
-            } else {
-                $buttonattrs['href'] = $buttonurl;
-                $buttonattrs['target'] = '_blank';
-                $buttonattrs['rel'] = 'noopener noreferrer';
-            }
-
-            echo html_writer::tag('a', $buttonlabel, $buttonattrs);
-
-            if ($canmanage && empty($livesonner->isfinished)) {
-                $finishurl = new moodle_url('/mod/livesonner/view.php', ['id' => $cm->id, 'action' => 'finalize', 'sesskey' => sesskey()]);
-                echo html_writer::tag('a', get_string('finalizeclass', 'mod_livesonner'), ['href' => $finishurl, 'class' => 'btn btn-outline-danger mt-3']);
-            }
-        echo html_writer::end_tag('div');
-
-        echo html_writer::start_tag('div', ['class' => 'card-footer bg-light p-4']);
             if (!empty($livesonner->isfinished)) {
-                echo html_writer::tag('h3', get_string('videosectiontitle', 'mod_livesonner'), ['class' => 'h4 mb-3']);
-                echo $videohtml;
+                echo html_writer::start_tag('section', ['class' => 'livesonner-card livesonner-video mt-4']);
+                    echo html_writer::tag('h3', get_string('videosectiontitle', 'mod_livesonner'), ['class' => 'h4 mb-3']);
+                    echo $videohtml;
 
-                if ($canmanage) {
-                    echo html_writer::tag('h4', get_string('recordingformtitle', 'mod_livesonner'), ['class' => 'h5 mt-4']);
-                    echo html_writer::div(get_string('recordingformdescription', 'mod_livesonner'), 'text-muted mb-3');
+                    if ($canmanage) {
+                        echo html_writer::tag('h4', get_string('recordingformtitle', 'mod_livesonner'), ['class' => 'h5 mt-4']);
+                        echo html_writer::div(get_string('recordingformdescription', 'mod_livesonner'), 'text-muted mb-3');
 
-                    $formurl = new moodle_url('/mod/livesonner/view.php', ['id' => $cm->id, 'action' => 'saverecording', 'sesskey' => sesskey()]);
-                    $form = html_writer::start_tag('form', ['method' => 'post', 'action' => $formurl]);
-                    $form .= html_writer::empty_tag('input', ['type' => 'text', 'name' => 'recordingurl', 'value' => s($livesonner->recordingurl), 'class' => 'form-control mb-2', 'placeholder' => get_string('recordingurlplaceholder', 'mod_livesonner')]);
-                    $form .= html_writer::empty_tag('input', ['type' => 'submit', 'class' => 'btn btn-primary', 'value' => get_string('saverecording', 'mod_livesonner')]);
-                    $form .= html_writer::end_tag('form');
-                    echo $form;
-                }
+                        $formurl = new moodle_url('/mod/livesonner/view.php', ['id' => $cm->id, 'action' => 'saverecording', 'sesskey' => sesskey()]);
+                        $form = html_writer::start_tag('form', ['method' => 'post', 'action' => $formurl]);
+                        $form .= html_writer::empty_tag('input', ['type' => 'text', 'name' => 'recordingurl', 'value' => s($livesonner->recordingurl), 'class' => 'form-control mb-2', 'placeholder' => get_string('recordingurlplaceholder', 'mod_livesonner')]);
+                        $form .= html_writer::empty_tag('input', ['type' => 'submit', 'class' => 'btn btn-primary', 'value' => get_string('saverecording', 'mod_livesonner')]);
+                        $form .= html_writer::end_tag('form');
+                        echo $form;
+                    }
+                echo html_writer::end_tag('section');
             } else if ($canmanage) {
-                echo html_writer::div(get_string('videoavailableafterfinish', 'mod_livesonner'), 'text-muted');
+                echo html_writer::start_tag('section', ['class' => 'livesonner-card livesonner-info mt-4']);
+                    echo html_writer::div(get_string('videoavailableafterfinish', 'mod_livesonner'), 'text-muted mb-0');
+                echo html_writer::end_tag('section');
             }
         echo html_writer::end_tag('div');
     echo html_writer::end_tag('div');
-
 echo html_writer::end_tag('div');
 
 if ($canmanage) {
@@ -247,74 +257,80 @@ if ($canmanage) {
     $userids = array_unique(array_merge($registrationusers, $attendanceusers));
     $users = $userids ? user_get_users_by_id($userids) : [];
 
-    echo html_writer::start_tag('div', ['class' => 'container my-4']);
-        echo html_writer::tag('h3', get_string('registrationsheading', 'mod_livesonner'), ['class' => 'h4']);
-        if ($registrations) {
-            echo html_writer::div(get_string('registrationscount', 'mod_livesonner', count($registrations)), 'text-muted mb-3');
-            echo html_writer::start_tag('div', ['class' => 'table-responsive']);
-                echo html_writer::start_tag('table', ['class' => 'table table-striped table-hover']);
-                    echo html_writer::start_tag('thead');
-                        echo html_writer::start_tag('tr');
-                            echo html_writer::tag('th', get_string('registrationuser', 'mod_livesonner'), ['scope' => 'col']);
-                            echo html_writer::tag('th', get_string('registrationtime', 'mod_livesonner'), ['scope' => 'col']);
-                        echo html_writer::end_tag('tr');
-                    echo html_writer::end_tag('thead');
-                    echo html_writer::start_tag('tbody');
-                        foreach ($registrations as $registration) {
-                            if (!isset($users[$registration->userid])) {
-                                $users[$registration->userid] = core_user::get_user($registration->userid);
-                            }
-                            if (!$users[$registration->userid]) {
-                                continue;
-                            }
-                            $user = $users[$registration->userid];
-                            $profileurl = new moodle_url('/user/view.php', ['id' => $user->id, 'course' => $course->id]);
-                            echo html_writer::start_tag('tr');
-                                echo html_writer::tag('td', html_writer::link($profileurl, fullname($user)), ['class' => 'align-middle']);
-                                echo html_writer::tag('td', userdate($registration->timecreated, get_string('strftimedatetimeshort', 'core_langconfig')), ['class' => 'align-middle']);
-                            echo html_writer::end_tag('tr');
-                        }
-                    echo html_writer::end_tag('tbody');
-                echo html_writer::end_tag('table');
-            echo html_writer::end_tag('div');
-        } else {
-            echo html_writer::div(get_string('registrationsempty', 'mod_livesonner'), 'text-muted');
-        }
-    echo html_writer::end_tag('div');
+    echo html_writer::start_tag('div', ['class' => 'mod-livesonner-manage container-fluid py-5']);
+        echo html_writer::start_tag('div', ['class' => 'row justify-content-center']);
+            echo html_writer::start_tag('div', ['class' => 'col-12']);
+                echo html_writer::start_tag('section', ['class' => 'livesonner-card livesonner-admin-card mb-4']);
+                    echo html_writer::tag('h3', get_string('registrationsheading', 'mod_livesonner'), ['class' => 'h4 mb-3']);
+                    if ($registrations) {
+                        echo html_writer::div(get_string('registrationscount', 'mod_livesonner', count($registrations)), 'text-muted mb-3');
+                        echo html_writer::start_tag('div', ['class' => 'table-responsive']);
+                            echo html_writer::start_tag('table', ['class' => 'table table-striped table-hover mb-0']);
+                                echo html_writer::start_tag('thead');
+                                    echo html_writer::start_tag('tr');
+                                        echo html_writer::tag('th', get_string('registrationuser', 'mod_livesonner'), ['scope' => 'col']);
+                                        echo html_writer::tag('th', get_string('registrationtime', 'mod_livesonner'), ['scope' => 'col']);
+                                    echo html_writer::end_tag('tr');
+                                echo html_writer::end_tag('thead');
+                                echo html_writer::start_tag('tbody');
+                                    foreach ($registrations as $registration) {
+                                        if (!isset($users[$registration->userid])) {
+                                            $users[$registration->userid] = core_user::get_user($registration->userid);
+                                        }
+                                        if (!$users[$registration->userid]) {
+                                            continue;
+                                        }
+                                        $user = $users[$registration->userid];
+                                        $profileurl = new moodle_url('/user/view.php', ['id' => $user->id, 'course' => $course->id]);
+                                        echo html_writer::start_tag('tr');
+                                            echo html_writer::tag('td', html_writer::link($profileurl, fullname($user)), ['class' => 'align-middle']);
+                                            echo html_writer::tag('td', userdate($registration->timecreated, get_string('strftimedatetimeshort', 'core_langconfig')), ['class' => 'align-middle']);
+                                        echo html_writer::end_tag('tr');
+                                    }
+                                echo html_writer::end_tag('tbody');
+                            echo html_writer::end_tag('table');
+                        echo html_writer::end_tag('div');
+                    } else {
+                        echo html_writer::div(get_string('registrationsempty', 'mod_livesonner'), 'text-muted mb-0');
+                    }
+                echo html_writer::end_tag('section');
 
-    echo html_writer::start_tag('div', ['class' => 'container my-4']);
-        echo html_writer::tag('h3', get_string('attendanceheading', 'mod_livesonner'), ['class' => 'h4']);
-        if ($attendances) {
-            echo html_writer::div(get_string('attendancecount', 'mod_livesonner', count($attendances)), 'text-muted mb-3');
-            echo html_writer::start_tag('div', ['class' => 'table-responsive']);
-                echo html_writer::start_tag('table', ['class' => 'table table-striped table-hover']);
-                    echo html_writer::start_tag('thead');
-                        echo html_writer::start_tag('tr');
-                            echo html_writer::tag('th', get_string('attendanceuser', 'mod_livesonner'), ['scope' => 'col']);
-                            echo html_writer::tag('th', get_string('timeclicked', 'mod_livesonner'), ['scope' => 'col']);
-                        echo html_writer::end_tag('tr');
-                    echo html_writer::end_tag('thead');
-                    echo html_writer::start_tag('tbody');
-                        foreach ($attendances as $attendance) {
-                            if (!isset($users[$attendance->userid])) {
-                                $users[$attendance->userid] = core_user::get_user($attendance->userid);
-                            }
-                            if (!$users[$attendance->userid]) {
-                                continue;
-                            }
-                            $user = $users[$attendance->userid];
-                            $profileurl = new moodle_url('/user/view.php', ['id' => $user->id, 'course' => $course->id]);
-                            echo html_writer::start_tag('tr');
-                                echo html_writer::tag('td', html_writer::link($profileurl, fullname($user)), ['class' => 'align-middle']);
-                                echo html_writer::tag('td', userdate($attendance->timeclicked, get_string('strftimedatetimeshort', 'core_langconfig')), ['class' => 'align-middle']);
-                            echo html_writer::end_tag('tr');
-                        }
-                    echo html_writer::end_tag('tbody');
-                echo html_writer::end_tag('table');
+                echo html_writer::start_tag('section', ['class' => 'livesonner-card livesonner-admin-card mb-4']);
+                    echo html_writer::tag('h3', get_string('attendanceheading', 'mod_livesonner'), ['class' => 'h4 mb-3']);
+                    if ($attendances) {
+                        echo html_writer::div(get_string('attendancecount', 'mod_livesonner', count($attendances)), 'text-muted mb-3');
+                        echo html_writer::start_tag('div', ['class' => 'table-responsive']);
+                            echo html_writer::start_tag('table', ['class' => 'table table-striped table-hover mb-0']);
+                                echo html_writer::start_tag('thead');
+                                    echo html_writer::start_tag('tr');
+                                        echo html_writer::tag('th', get_string('attendanceuser', 'mod_livesonner'), ['scope' => 'col']);
+                                        echo html_writer::tag('th', get_string('timeclicked', 'mod_livesonner'), ['scope' => 'col']);
+                                    echo html_writer::end_tag('tr');
+                                echo html_writer::end_tag('thead');
+                                echo html_writer::start_tag('tbody');
+                                    foreach ($attendances as $attendance) {
+                                        if (!isset($users[$attendance->userid])) {
+                                            $users[$attendance->userid] = core_user::get_user($attendance->userid);
+                                        }
+                                        if (!$users[$attendance->userid]) {
+                                            continue;
+                                        }
+                                        $user = $users[$attendance->userid];
+                                        $profileurl = new moodle_url('/user/view.php', ['id' => $user->id, 'course' => $course->id]);
+                                        echo html_writer::start_tag('tr');
+                                            echo html_writer::tag('td', html_writer::link($profileurl, fullname($user)), ['class' => 'align-middle']);
+                                            echo html_writer::tag('td', userdate($attendance->timeclicked, get_string('strftimedatetimeshort', 'core_langconfig')), ['class' => 'align-middle']);
+                                        echo html_writer::end_tag('tr');
+                                    }
+                                echo html_writer::end_tag('tbody');
+                            echo html_writer::end_tag('table');
+                        echo html_writer::end_tag('div');
+                    } else {
+                        echo html_writer::div(get_string('attendanceempty', 'mod_livesonner'), 'text-muted mb-0');
+                    }
+                echo html_writer::end_tag('section');
             echo html_writer::end_tag('div');
-        } else {
-            echo html_writer::div(get_string('attendanceempty', 'mod_livesonner'), 'text-muted');
-        }
+        echo html_writer::end_tag('div');
     echo html_writer::end_tag('div');
 }
 

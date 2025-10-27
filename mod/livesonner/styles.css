@@ -9,3 +9,129 @@
     min-height: 320px;
     background-color: #000;
 }
+
+.mod-livesonner .mod-livesonner-view,
+.mod-livesonner .mod-livesonner-manage {
+    background-color: #f1f5f9;
+}
+
+.mod-livesonner .livesonner-card {
+    background-color: #ffffff;
+    border-radius: 1.25rem;
+    padding: 2rem;
+    box-shadow: 0 1.5rem 3rem rgba(15, 23, 42, 0.12);
+}
+
+@media (max-width: 767.98px) {
+    .mod-livesonner .livesonner-card {
+        padding: 1.5rem;
+        border-radius: 1rem;
+    }
+}
+
+.mod-livesonner .livesonner-title {
+    font-size: 2.5rem;
+    font-size: clamp(2rem, 3vw + 1rem, 3.25rem);
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.mod-livesonner .livesonner-intro {
+    color: #475569;
+}
+
+.mod-livesonner .livesonner-status {
+    border: none;
+    background-color: rgba(30, 64, 175, 0.12);
+    color: #1e3a8a;
+    border-radius: 0.9rem;
+}
+
+.mod-livesonner .livesonner-cta {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.mod-livesonner .livesonner-cta:hover,
+.mod-livesonner .livesonner-cta:focus {
+    transform: translateY(-2px);
+    box-shadow: 0 1.25rem 2.5rem rgba(59, 130, 246, 0.35);
+}
+
+.mod-livesonner .livesonner-finalize {
+    border-width: 2px;
+}
+
+.mod-livesonner .livesonner-meta {
+    background-color: #f8fafc;
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+}
+
+.mod-livesonner .livesonner-meta-item {
+    background-color: #ffffff;
+    border-radius: 0.9rem;
+    font-weight: 600;
+    color: #0f172a;
+    padding: 1.1rem 1.25rem;
+    box-shadow: 0 1rem 2rem rgba(15, 23, 42, 0.08);
+    line-height: 1.4;
+}
+
+.mod-livesonner .livesonner-meta-item + .livesonner-meta-item {
+    margin-top: 1rem;
+}
+
+.mod-livesonner .livesonner-meta-teacher a {
+    color: inherit;
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.mod-livesonner .livesonner-meta-teacher a:hover,
+.mod-livesonner .livesonner-meta-teacher a:focus {
+    text-decoration: underline;
+}
+
+.mod-livesonner .livesonner-video {
+    background-color: #0f172a;
+    color: #ffffff;
+}
+
+.mod-livesonner .livesonner-video h3,
+.mod-livesonner .livesonner-video h4 {
+    color: #ffffff;
+}
+
+.mod-livesonner .livesonner-video .text-muted {
+    color: rgba(226, 232, 240, 0.9) !important;
+}
+
+.mod-livesonner .livesonner-video .form-control {
+    background-color: rgba(255, 255, 255, 0.85);
+    border: none;
+}
+
+.mod-livesonner .livesonner-info {
+    background-color: #f8fafc;
+    border: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+.mod-livesonner .livesonner-admin-card {
+    border: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+.mod-livesonner .livesonner-admin-card .table {
+    margin-bottom: 0;
+}
+
+.mod-livesonner .livesonner-admin-card .table thead th {
+    border-top: none;
+    color: #0f172a;
+    font-weight: 600;
+}
+
+.mod-livesonner .livesonner-admin-card .table tbody tr:last-child td {
+    border-bottom: none;
+}
