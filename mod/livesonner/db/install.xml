@@ -62,7 +62,7 @@
                 <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true" COMMENT="Primary key"/>
                 <FIELD NAME="livesonnerid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" COMMENT="Live class ID"/>
                 <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" COMMENT="User ID"/>
-                <FIELD NAME="filename" TYPE="char" LENGTH="255" NOTNULL="true" DEFAULT="" COMMENT="Certificate filename"/>
+                <FIELD NAME="filename" TYPE="char" LENGTH="255" NOTNULL="true" COMMENT="Certificate filename"/>
                 <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" COMMENT="Issuance time"/>
                 <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" COMMENT="Last update time"/>
             </FIELDS>
@@ -73,7 +73,7 @@
             </KEYS>
             <INDEXES>
                 <INDEX NAME="session_user" UNIQUE="true" FIELDS="livesonnerid, userid"/>
-                <INDEX NAME="userid_idx" UNIQUE="false" FIELDS="userid"/>
+                <INDEX NAME="userid_idx" UNIQUE="false" FIELDS="userid, timecreated"/>
             </INDEXES>
         </TABLE>
     </TABLES>

@@ -102,7 +102,7 @@ function xmldb_livesonner_upgrade(int $oldversion): bool {
             $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
             $table->add_field('livesonnerid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
             $table->add_field('userid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
-            $table->add_field('filename', XMLDB_TYPE_CHAR, '255', null, XMLDB_NOTNULL, null, '');
+            $table->add_field('filename', XMLDB_TYPE_CHAR, '255', null, XMLDB_NOTNULL, null, null);
             $table->add_field('timecreated', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
             $table->add_field('timemodified', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
 
@@ -111,7 +111,7 @@ function xmldb_livesonner_upgrade(int $oldversion): bool {
             $table->add_key('userid', XMLDB_KEY_FOREIGN, ['userid'], 'user', ['id']);
 
             $table->add_index('session_user', XMLDB_INDEX_UNIQUE, ['livesonnerid', 'userid']);
-            $table->add_index('userid_idx', XMLDB_INDEX_NOTUNIQUE, ['userid']);
+            $table->add_index('userid_idx', XMLDB_INDEX_NOTUNIQUE, ['userid', 'timecreated']);
 
             $dbman->create_table($table);
         }
