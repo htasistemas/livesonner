@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8">
+  <title>Certificado - {{username}}</title>
+
+  <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+
+  <style>
+    body {
+      font-family: 'Poppins', sans-serif;
+      background-color: #fff;
+      margin: 0;
+      padding: 0;
+    }
+
+    /* Área principal do certificado */
+    .certificado {
+      width: 1056px;
+      height: 792px;
+      background-image: url('https://lp.sonner.com.br/Certificado%20Sonner.jpg?_t=1761324499');
+      background-size: cover;
+      background-repeat: no-repeat;
+      position: relative;
+    }
+
+    /* Nome do participante */
+    .campo-nome {
+      position: absolute;
+      top: 365px;
+      left: 66%;
+      transform: translate(-50%, -50%);
+      width: 50%;
+      text-align: center;
+      font-family: 'Great Vibes', cursive;
+      font-size: 55px;
+      color: #002356;
+      line-height: 1.2;
+      white-space: nowrap;
+    }
+
+    /* Nome do curso/módulo */
+    .campo-curso {
+      position: absolute;
+      top: 503px;
+      left: 66%;
+      transform: translateX(-50%);
+      width: 60%;
+      text-align: center;
+      font-family: 'Poppins', sans-serif;
+      font-size: 16px;
+      color: #002356;
+      font-weight: 600;
+    }
+
+    /* Data por extenso */
+    .campo-data {
+      position: absolute;
+      top: 539px;
+      left: 66%;
+      transform: translateX(-50%);
+      width: 60%;
+      text-align: center;
+      font-family: 'Poppins', sans-serif;
+      font-size: 16px;
+      color: #002356;
+      font-weight: 400;
+    }
+
+    /* Assinatura do professor */
+    .campo-assinatura-professor {
+      position: absolute;
+      bottom: 40px;
+      right: 128px;
+      text-align: center;
+      width: 150px;
+    }
+
+    .professor-nome {
+      font-family: 'Poppins', sans-serif;
+      font-size: 14px;
+      color: #002356;
+      font-weight: 600;
+      margin-top: 5px;
+      line-height: 0.1;
+    }
+
+    .professor-cargo {
+      font-family: 'Poppins', sans-serif;
+      font-size: 16px;
+      color: #002356;
+      font-weight: 400;
+      line-height: 0.2;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="certificado">
+    <p class="campo-nome">{{username}}</p>
+    <p class="campo-curso">{{coursename}}</p>
+    <p class="campo-data">na data de {{issuedate}}</p>
+
+    <div class="campo-assinatura-professor">
+      <p class="professor-nome">{{instructorname}}</p>
+      <p class="professor-cargo">Professor(a)</p>
+    </div>
+  </div>
+</body>
+</html>
