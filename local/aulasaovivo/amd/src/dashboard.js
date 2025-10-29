@@ -22,7 +22,8 @@ define(['core/ajax', 'core/notification'], function(Ajax, Notification) {
         carousel: '[data-region="carousel"]',
         nav: '[data-action="scroll"]',
         feedback: '[data-region="feedback"]',
-        notice: '[data-region="fallback-notice"]'
+        notice: '[data-region="fallback-notice"]',
+        certificateList: '[data-region="certificates"]'
     };
 
     const countdownRegistry = new Map();
@@ -128,6 +129,31 @@ define(['core/ajax', 'core/notification'], function(Ajax, Notification) {
             shortDate: new Intl.DateTimeFormat(locale, { day: '2-digit', month: '2-digit', timeZone: timezone }),
             time: new Intl.DateTimeFormat(locale, { hour: '2-digit', minute: '2-digit', timeZone: timezone })
         };
+    };
+
+    /**
+     * Formats a timestamp using the configured locale.
+     *
+     * @param {Number} timestamp
+     * @returns {String}
+     */
+    const formatDateValue = timestamp => {
+        if (!timestamp) {
+            return '';
+        }
+
+        try {
+            const date = new Date(timestamp * 1000);
+            if (Number.isNaN(date.getTime())) {
+                return '';
+            }
+            if (state.formatters.date) {
+                return state.formatters.date.format(date);
+            }
+            return date.toLocaleDateString();
+        } catch (error) {
+            return '';
+        }
     };
 
     /**
@@ -267,7 +293,7 @@ define(['core/ajax', 'core/notification'], function(Ajax, Notification) {
      * @returns {Promise}
      */
     const refreshPanels = target => {
-        const panels = target ? [target] : ['catalog', 'enrolled'];
+        const panels = target ? [target] : ['catalog', 'enrolled', 'certificates'];
         if (!target) {
             state.fallback = false;
         }
@@ -315,18 +341,36 @@ define(['core/ajax', 'core/notification'], function(Ajax, Notification) {
      * @returns {Promise}
      */
     const loadPanel = type => {
-        const method = type === 'catalog' ? state.config.services.catalog : state.config.services.enrolled;
+        let method;
+        if (type === 'catalog') {
+            method = state.config.services.catalog;
+        } else if (type === 'enrolled') {
+            method = state.config.services.enrolled;
+        } else if (type === 'certificates') {
+            method = state.config.services.certificates;
+        } else {
+            return Promise.resolve();
+        }
         const [request] = Ajax.call([{ methodname: method, args: {} }]);
 
         return request.then(response => {
-            if (response.usingfallback) {
+            if (type !== 'certificates' && response.usingfallback) {
                 state.fallback = true;
             }
-            const sessions = normaliseSessions(response.sessions);
-            renderPanel(type, sessions);
+            if (type === 'certificates') {
+                const certificates = normaliseCertificates(response.certificates);
+                renderCertificates(certificates);
+            } else {
+                const sessions = normaliseSessions(response.sessions);
+                renderPanel(type, sessions);
+            }
             return response;
         }).catch(error => {
-            renderPanel(type, []);
+            if (type === 'certificates') {
+                renderCertificates([]);
+            } else {
+                renderPanel(type, []);
+            }
             throw error;
         });
     };
@@ -338,6 +382,22 @@ define(['core/ajax', 'core/notification'], function(Ajax, Notification) {
      * @returns {Array}
      */
     const normaliseSessions = data => {
+        if (Array.isArray(data)) {
+            return data;
+        }
+        if (!data || typeof data !== 'object') {
+            return [];
+        }
+        return Object.values(data);
+    };
+
+    /**
+     * Normalises the certificates payload into an array.
+     *
+     * @param {Array|Object} data
+     * @returns {Array}
+     */
+    const normaliseCertificates = data => {
         if (Array.isArray(data)) {
             return data;
         }
@@ -413,6 +473,76 @@ define(['core/ajax', 'core/notification'], function(Ajax, Notification) {
             if (entry.panel === type) {
                 countdownRegistry.delete(element);
             }
+        });
+    };
+
+    /**
+     * Renders the list of certificates.
+     *
+     * @param {Array} certificates
+     */
+    const renderCertificates = certificates => {
+        const panel = findPanel('certificates');
+        if (!panel) {
+            return;
+        }
+
+        const list = panel.querySelector(SELECTORS.certificateList);
+        if (!list) {
+            return;
+        }
+
+        list.innerHTML = '';
+
+        if (!certificates.length) {
+            const empty = document.createElement('div');
+            empty.className = 'aulasaovivo__empty';
+            empty.textContent = state.config.strings.emptycertificates;
+            list.appendChild(empty);
+            return;
+        }
+
+        certificates.forEach(certificate => {
+            const item = document.createElement('article');
+            item.className = 'aulasaovivo__certificate';
+
+            const title = document.createElement('h3');
+            title.className = 'aulasaovivo__certificate-title';
+            title.textContent = certificate.sessionname || '';
+            item.appendChild(title);
+
+            if (certificate.coursename) {
+                const course = document.createElement('div');
+                course.className = 'aulasaovivo__certificate-course';
+                course.textContent = certificate.coursename;
+                item.appendChild(course);
+            }
+
+            const date = document.createElement('div');
+            date.className = 'aulasaovivo__certificate-date';
+            const formatted = certificate.issuedatestring || formatDateValue(certificate.issuedate);
+            if (formatted) {
+                date.textContent = `${state.config.strings.certificateissuedon} ${formatted}`;
+            } else {
+                date.textContent = state.config.strings.certificateissuedon;
+            }
+            item.appendChild(date);
+
+            if (certificate.fileurl) {
+                const actions = document.createElement('div');
+                actions.className = 'aulasaovivo__certificate-actions';
+                const link = document.createElement('a');
+                link.href = certificate.fileurl;
+                link.target = '_blank';
+                link.rel = 'noopener noreferrer';
+                link.classList.add('aulasaovivo__button');
+                link.setAttribute('data-variant', 'primary');
+                link.textContent = state.config.strings.certificatedownload;
+                actions.appendChild(link);
+                item.appendChild(actions);
+            }
+
+            list.appendChild(item);
         });
     };
 

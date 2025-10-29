@@ -67,6 +67,14 @@ class provider implements
             'timecreated' => 'privacy:metadata:livesonner_enrolments:timecreated',
         ], 'privacy:metadata:livesonner_enrolments');
 
+        $collection->add_database_table('livesonner_certificates', [
+            'livesonnerid' => 'privacy:metadata:livesonner_certificates:livesonnerid',
+            'userid' => 'privacy:metadata:livesonner_certificates:userid',
+            'filename' => 'privacy:metadata:livesonner_certificates:filename',
+            'timecreated' => 'privacy:metadata:livesonner_certificates:timecreated',
+            'timemodified' => 'privacy:metadata:livesonner_certificates:timemodified',
+        ], 'privacy:metadata:livesonner_certificates');
+
         return $collection;
     }
 
@@ -100,8 +108,18 @@ class provider implements
                   JOIN {course_modules} cm ON cm.id = ctx.instanceid AND ctx.contextlevel = :modulelevel
                   JOIN {modules} m ON m.id = cm.module AND m.name = :modname
                   JOIN {livesonner} l ON l.id = cm.instance
-                  JOIN {livesonner_enrolments} le ON le.livesonnerid = l.id
+                 JOIN {livesonner_enrolments} le ON le.livesonnerid = l.id
                  WHERE le.userid = :userid";
+
+        $contextlist->add_from_sql($sql, $params);
+
+        $sql = "SELECT ctx.id
+                  FROM {context} ctx
+                  JOIN {course_modules} cm ON cm.id = ctx.instanceid AND ctx.contextlevel = :modulelevel
+                  JOIN {modules} m ON m.id = cm.module AND m.name = :modname
+                  JOIN {livesonner} l ON l.id = cm.instance
+                  JOIN {livesonner_certificates} lc ON lc.livesonnerid = l.id
+                 WHERE lc.userid = :userid";
 
         $contextlist->add_from_sql($sql, $params);
 
@@ -158,6 +176,29 @@ class provider implements
 
                 writer::with_context($context)->export_data(['attendance'], $data);
             }
+
+            $certificates = $DB->get_records('livesonner_certificates', [
+                'livesonnerid' => $livesonner->id,
+                'userid' => $userid,
+            ]);
+
+            if ($certificates) {
+                $fs = get_file_storage();
+                foreach ($certificates as $certificate) {
+                    $path = ['certificates', $certificate->id];
+                    $data = (object) [
+                        'name' => format_string($livesonner->name, true),
+                        'filename' => $certificate->filename,
+                        'timecreated' => userdate($certificate->timecreated),
+                    ];
+                    writer::with_context($context)->export_data($path, $data);
+
+                    $files = $fs->get_area_files($context->id, 'mod_livesonner', 'certificates', $certificate->id, 'filename', false);
+                    foreach ($files as $file) {
+                        writer::with_context($context)->export_file(array_merge($path, ['files']), $file);
+                    }
+                }
+            }
         }
     }
 
@@ -174,8 +215,14 @@ class provider implements
         }
 
         $cm = get_coursemodule_from_id('livesonner', $context->instanceid, 0, false, MUST_EXIST);
+        $fs = get_file_storage();
         $DB->delete_records('livesonner_attendance', ['livesonnerid' => $cm->instance]);
         $DB->delete_records('livesonner_enrolments', ['livesonnerid' => $cm->instance]);
+        $certificates = $DB->get_records('livesonner_certificates', ['livesonnerid' => $cm->instance], 'id');
+        foreach ($certificates as $certificate) {
+            $fs->delete_area_files($context->id, 'mod_livesonner', 'certificates', $certificate->id);
+        }
+        $DB->delete_records('livesonner_certificates', ['livesonnerid' => $cm->instance]);
     }
 
     /**
@@ -197,8 +244,14 @@ class provider implements
                 continue;
             }
             $cm = get_coursemodule_from_id('livesonner', $context->instanceid, 0, false, MUST_EXIST);
+            $fs = get_file_storage();
             $DB->delete_records('livesonner_attendance', ['livesonnerid' => $cm->instance, 'userid' => $userid]);
             $DB->delete_records('livesonner_enrolments', ['livesonnerid' => $cm->instance, 'userid' => $userid]);
+            $certificates = $DB->get_records('livesonner_certificates', ['livesonnerid' => $cm->instance, 'userid' => $userid], 'id');
+            foreach ($certificates as $certificate) {
+                $fs->delete_area_files($context->id, 'mod_livesonner', 'certificates', $certificate->id);
+            }
+            $DB->delete_records('livesonner_certificates', ['livesonnerid' => $cm->instance, 'userid' => $userid]);
         }
     }
 
@@ -234,6 +287,14 @@ class provider implements
                  WHERE cm.id = :cmid";
 
         $userlist->add_from_sql('userid', $sql, $params);
+
+        $sql = "SELECT lc.userid
+                  FROM {livesonner_certificates} lc
+                  JOIN {course_modules} cm ON cm.instance = lc.livesonnerid
+                  JOIN {modules} m ON m.id = cm.module AND m.name = :modname
+                 WHERE cm.id = :cmid";
+
+        $userlist->add_from_sql('userid', $sql, $params);
     }
 
     /**
@@ -260,5 +321,11 @@ class provider implements
 
         $DB->delete_records_select('livesonner_attendance', "livesonnerid = :livesonnerid AND userid $insql", $params);
         $DB->delete_records_select('livesonner_enrolments', "livesonnerid = :livesonnerid AND userid $insql", $params);
+        $fs = get_file_storage();
+        $certificates = $DB->get_records_select('livesonner_certificates', "livesonnerid = :livesonnerid AND userid $insql", $params);
+        foreach ($certificates as $certificate) {
+            $fs->delete_area_files($context->id, 'mod_livesonner', 'certificates', $certificate->id);
+        }
+        $DB->delete_records_select('livesonner_certificates', "livesonnerid = :livesonnerid AND userid $insql", $params);
     }
 }
