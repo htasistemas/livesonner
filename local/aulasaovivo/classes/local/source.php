@@ -67,6 +67,26 @@ class source {
     }
 
     /**
+     * Returns the certificates that were issued to the given user.
+     *
+     * @param int $userid
+     * @return array{certificates: array<int, array<string, mixed>>, usingfallback: bool}
+     */
+    public static function get_certificates(int $userid): array {
+        [$certificates, $usingfallback] = self::call_provider('painelaulas_get_certificates', [$userid], []);
+
+        $certificates = array_map([self::class, 'normalise_certificate'], $certificates);
+        $certificates = array_values(array_filter($certificates, static function(array $certificate): bool {
+            return !empty($certificate['id']);
+        }));
+
+        return [
+            'certificates' => $certificates,
+            'usingfallback' => $usingfallback,
+        ];
+    }
+
+    /**
      * Enrols the user in the requested session.
      *
      * @param int $userid
@@ -205,6 +225,35 @@ class source {
             'isenrolled' => $isenrolled,
             'registrationtime' => $registrationtime,
             'status' => (string)($session['status'] ?? ''),
+        ];
+    }
+
+    /**
+     * Normalises a certificate record returned by the provider component.
+     *
+     * @param array $certificate
+     * @return array<string, mixed>
+     */
+    protected static function normalise_certificate($certificate): array {
+        if (!is_array($certificate)) {
+            $certificate = [];
+        }
+
+        $issuedate = isset($certificate['issuedate']) ? (int)$certificate['issuedate'] : 0;
+        $issuedatestring = (string)($certificate['issuedatestring'] ?? '');
+        if ($issuedatestring === '' && $issuedate) {
+            $issuedatestring = userdate($issuedate);
+        }
+
+        return [
+            'id' => (int)($certificate['id'] ?? 0),
+            'sessionid' => (int)($certificate['sessionid'] ?? 0),
+            'sessionname' => (string)($certificate['sessionname'] ?? $certificate['name'] ?? ''),
+            'coursename' => (string)($certificate['coursename'] ?? ''),
+            'issuedate' => $issuedate,
+            'issuedatestring' => $issuedatestring,
+            'fileurl' => (string)($certificate['fileurl'] ?? ''),
+            'filename' => (string)($certificate['filename'] ?? ''),
         ];
     }
 

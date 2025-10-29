@@ -79,6 +79,7 @@ if ($action === 'finalize') {
         throw new required_capability_exception($context, 'mod/livesonner:manage', 'nopermissions', 'finalize');
     }
 
+    $notificationtype = \core\output\notification::NOTIFY_SUCCESS;
     if (empty($livesonner->isfinished)) {
         $livesonner->isfinished = 1;
         $livesonner->timemodified = time();
@@ -92,11 +93,23 @@ if ($action === 'finalize') {
             }
         }
         $message = get_string('finishsuccess', 'mod_livesonner');
+        try {
+            $issued = \mod_livesonner\local\certificate_manager::issue_for_session($livesonner, $course, $context);
+            if ($issued > 0) {
+                $message = get_string('finishsuccesswithcertificates', 'mod_livesonner', $issued);
+            } else {
+                $message = get_string('finishsuccessnocertificates', 'mod_livesonner');
+            }
+        } catch (moodle_exception $exception) {
+            $message = get_string('finishsuccess', 'mod_livesonner') . ' ' . $exception->getMessage();
+            $notificationtype = \core\output\notification::NOTIFY_WARNING;
+        }
     } else {
         $message = get_string('finishalready', 'mod_livesonner');
+        $notificationtype = \core\output\notification::NOTIFY_INFO;
     }
 
-    redirect(new moodle_url('/mod/livesonner/view.php', ['id' => $cm->id]), $message, null, \core\output\notification::NOTIFY_SUCCESS);
+    redirect(new moodle_url('/mod/livesonner/view.php', ['id' => $cm->id]), $message, null, $notificationtype);
 }
 
 if ($action === 'saverecording') {

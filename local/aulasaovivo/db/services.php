@@ -44,4 +44,13 @@ $functions = [
         'ajax'        => true,
         'capabilities' => 'local/aulasaovivo:view',
     ],
+    'local_aulasaovivo_get_certificates' => [
+        'classname'   => 'local_aulasaovivo\\external\\api',
+        'methodname'  => 'get_certificates',
+        'classpath'   => '',
+        'description' => 'Returns the certificates issued for the current user.',
+        'type'        => 'read',
+        'ajax'        => true,
+        'capabilities' => 'local/aulasaovivo:view',
+    ],
 ];

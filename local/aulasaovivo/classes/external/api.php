@@ -106,6 +106,48 @@ class api extends external_api {
     }
 
     /**
+     * Parameters for get_certificates.
+     *
+     * @return external_function_parameters
+     */
+    public static function get_certificates_parameters(): external_function_parameters {
+        return new external_function_parameters([]);
+    }
+
+    /**
+     * Retrieves issued certificates for the current user.
+     *
+     * @return array
+     */
+    public static function get_certificates(): array {
+        global $USER;
+
+        self::validate_parameters(self::get_certificates_parameters(), []);
+        $context = context_system::instance();
+        self::validate_context($context);
+        require_capability('local/aulasaovivo:view', $context);
+
+        $result = source::get_certificates($USER->id);
+
+        return [
+            'certificates' => array_map([self::class, 'prepare_certificate'], $result['certificates']),
+            'usingfallback' => !empty($result['usingfallback']),
+        ];
+    }
+
+    /**
+     * Returns description of get_certificates result.
+     *
+     * @return external_single_structure
+     */
+    public static function get_certificates_returns(): external_single_structure {
+        return new external_single_structure([
+            'certificates' => new external_multiple_structure(self::certificate_structure(), 'Certificates list', VALUE_DEFAULT, []),
+            'usingfallback' => new external_value(PARAM_BOOL, 'True when demo data is being used', VALUE_DEFAULT, false),
+        ]);
+    }
+
+    /**
      * Parameters for enrol_session.
      *
      * @return external_function_parameters
@@ -207,6 +249,25 @@ class api extends external_api {
     }
 
     /**
+     * Shapes a certificate record to the external structure.
+     *
+     * @param array $certificate
+     * @return array
+     */
+    protected static function prepare_certificate(array $certificate): array {
+        return [
+            'id' => (int)($certificate['id'] ?? 0),
+            'sessionid' => (int)($certificate['sessionid'] ?? 0),
+            'sessionname' => (string)($certificate['sessionname'] ?? ''),
+            'coursename' => (string)($certificate['coursename'] ?? ''),
+            'issuedate' => (int)($certificate['issuedate'] ?? 0),
+            'issuedatestring' => (string)($certificate['issuedatestring'] ?? ''),
+            'fileurl' => (string)($certificate['fileurl'] ?? ''),
+            'filename' => (string)($certificate['filename'] ?? ''),
+        ];
+    }
+
+    /**
      * Session description structure.
      *
      * @return external_single_structure
@@ -236,6 +297,24 @@ class api extends external_api {
             ], 'Instructor information'),
             'isenrolled' => new external_value(PARAM_BOOL, 'Whether the current user is enrolled'),
             'status' => new external_value(PARAM_TEXT, 'Optional status provided by the source', VALUE_DEFAULT, ''),
+        ]);
+    }
+
+    /**
+     * Certificate description structure.
+     *
+     * @return external_single_structure
+     */
+    protected static function certificate_structure(): external_single_structure {
+        return new external_single_structure([
+            'id' => new external_value(PARAM_INT, 'Certificate identifier'),
+            'sessionid' => new external_value(PARAM_INT, 'Related session identifier', VALUE_DEFAULT, 0),
+            'sessionname' => new external_value(PARAM_TEXT, 'Session name', VALUE_DEFAULT, ''),
+            'coursename' => new external_value(PARAM_TEXT, 'Course name', VALUE_DEFAULT, ''),
+            'issuedate' => new external_value(PARAM_INT, 'Issuance timestamp', VALUE_DEFAULT, 0),
+            'issuedatestring' => new external_value(PARAM_TEXT, 'Formatted issuance date', VALUE_DEFAULT, ''),
+            'fileurl' => new external_value(PARAM_URL, 'Download URL', VALUE_DEFAULT, ''),
+            'filename' => new external_value(PARAM_FILE, 'Certificate filename', VALUE_DEFAULT, ''),
         ]);
     }
 }

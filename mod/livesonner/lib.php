@@ -100,8 +100,15 @@ function livesonner_delete_instance($id) {
         return false;
     }
 
+    if ($cm = get_coursemodule_from_instance('livesonner', $livesonner->id, $livesonner->course, false, IGNORE_MISSING)) {
+        $context = context_module::instance($cm->id);
+        $fs = get_file_storage();
+        $fs->delete_area_files($context->id, 'mod_livesonner', 'certificates');
+    }
+
     $DB->delete_records('livesonner_attendance', ['livesonnerid' => $id]);
     $DB->delete_records('livesonner_enrolments', ['livesonnerid' => $id]);
+    $DB->delete_records('livesonner_certificates', ['livesonnerid' => $id]);
     $DB->delete_records('livesonner', ['id' => $id]);
 
     return true;
@@ -245,6 +252,23 @@ function mod_livesonner_painelaulas_get_enrolments(int $userid): array {
     return array_values(array_filter($sessions, static function(array $session): bool {
         return !empty($session['isenrolled']);
     }));
+}
+
+/**
+ * Retrieve the certificates available for the given user.
+ *
+ * @param int $userid Target user identifier
+ * @return array
+ */
+function mod_livesonner_painelaulas_get_certificates(int $userid): array {
+    global $USER;
+
+    if ($USER->id !== $userid) {
+        $systemcontext = context_system::instance();
+        require_capability('moodle/site:viewreports', $systemcontext);
+    }
+
+    return \mod_livesonner\local\certificate_manager::get_user_certificates($userid);
 }
 
 /**
@@ -533,5 +557,61 @@ function livesonner_extend_navigation(navigation_node $navigation, stdClass $cou
  * @return array
  */
 function livesonner_get_file_areas($course, $cm, $context) {
-    return [];
+    return [
+        'certificates' => get_string('filearea_certificates', 'mod_livesonner'),
+    ];
+}
+
+/**
+ * File serving for certificates issued by the module.
+ *
+ * @param stdClass $course course record
+ * @param stdClass $cm course module record
+ * @param context_module $context module context
+ * @param string $filearea file area name
+ * @param array $args additional path arguments
+ * @param bool $forcedownload whether the response should force a download
+ * @param array $options additional options
+ * @return void|false
+ */
+function livesonner_pluginfile($course, $cm, $context, $filearea, $args, $forcedownload, array $options = []) {
+    global $DB, $USER;
+
+    if ($context->contextlevel !== CONTEXT_MODULE) {
+        return false;
+    }
+
+    if ($filearea !== 'certificates') {
+        return false;
+    }
+
+    if (empty($args)) {
+        return false;
+    }
+
+    require_login($course, false, $cm);
+
+    $itemid = (int)array_shift($args);
+    $filename = array_pop($args);
+    if ($filename === null) {
+        return false;
+    }
+    $filepath = $args ? '/' . implode('/', $args) . '/' : '/';
+
+    $certificate = $DB->get_record('livesonner_certificates', ['id' => $itemid]);
+    if (!$certificate || (int)$certificate->livesonnerid !== (int)$cm->instance) {
+        return false;
+    }
+
+    if ((int)$certificate->userid !== (int)$USER->id && !has_capability('mod/livesonner:manage', $context)) {
+        return false;
+    }
+
+    $fs = get_file_storage();
+    $file = $fs->get_file($context->id, 'mod_livesonner', 'certificates', $itemid, $filepath, $filename);
+    if (!$file || $file->is_directory()) {
+        return false;
+    }
+
+    send_stored_file($file, 0, 0, true, $options);
 }
