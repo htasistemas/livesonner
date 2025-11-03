@@ -293,7 +293,7 @@ function mod_livesonner_painelaulas_enrol_session(int $userid, int $sessionid): 
 
     $coursecontext = context_course::instance($session->course);
 
-    if ($USER->id !== $userid && !has_capability('mod/livesonner:manage', $coursecontext)) {
+    if ((int)$USER->id !== (int)$userid && !has_capability('mod/livesonner:manage', $coursecontext)) {
         return [
             'status' => false,
             'message' => get_string('painelaulaspermissiondenied', 'mod_livesonner'),
