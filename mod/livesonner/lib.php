@@ -396,20 +396,27 @@ function mod_livesonner_painelaulas_collect_sessions(int $userid): array {
 
         $modinfo = $modinfocache[$record->course];
 
-        if (!isset($modinfo->cms[$record->cmid])) {
-            continue;
-        }
-
-        $cminfo = $modinfo->cms[$record->cmid];
+        $cminfo = $modinfo->cms[$record->cmid] ?? null;
         $isteacher = !empty($record->teacherid) && (int)$record->teacherid === $userid;
         $canmanage = has_capability('mod/livesonner:manage', $modulecontext, $userid, false);
         $canviewhidden = has_capability('moodle/course:viewhiddenactivities', $modulecontext, $userid, false);
-        $stealth = method_exists($cminfo, 'is_stealth') ? $cminfo->is_stealth() : false;
-        $availabilityinfo = trim((string)($cminfo->availableinfo ?? ''));
+        $stealth = false;
+        $availabilityinfo = '';
 
-        if (!$cminfo->uservisible && !$stealth && $availabilityinfo === '' && !$canmanage && !$canviewhidden && !$isteacher) {
-            // The user cannot access this activity at all.
-            continue;
+        if ($cminfo) {
+            $stealth = method_exists($cminfo, 'is_stealth') ? $cminfo->is_stealth() : false;
+            $availabilityinfo = trim((string)($cminfo->availableinfo ?? ''));
+
+            if (!$cminfo->uservisible && !$stealth && $availabilityinfo === '' && !$canmanage && !$canviewhidden && !$isteacher) {
+                // The user cannot access this activity at all.
+                continue;
+            }
+        } else {
+            // The user does not yet have access to the module (for example, is not enrolled).
+            // Respect hidden modules when the user lacks the capability to view them.
+            if (!(bool)$record->cmvisible && !$canmanage && !$canviewhidden && !$isteacher) {
+                continue;
+            }
         }
 
         $starttime = (int)$record->timestart;
