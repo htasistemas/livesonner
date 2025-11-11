@@ -254,6 +254,7 @@ class source {
             'issuedatestring' => $issuedatestring,
             'fileurl' => (string)($certificate['fileurl'] ?? ''),
             'filename' => (string)($certificate['filename'] ?? ''),
+            'previewurl' => (string)($certificate['previewurl'] ?? $certificate['thumbnail'] ?? ''),
         ];
     }
 

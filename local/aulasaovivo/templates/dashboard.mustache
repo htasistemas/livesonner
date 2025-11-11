@@ -3,8 +3,48 @@
         <span>{{strings.fallbacknotice}}</span>
     </div>
     <div class="aulasaovivo__feedback" data-region="feedback" aria-live="polite"></div>
+    <div class="aulasaovivo__tabs" role="tablist" aria-label="{{strings.tablistlabel}}">
+        <button type="button"
+                class="aulasaovivo__tab"
+                id="{{rootid}}-tab-catalog"
+                data-action="switch-panel"
+                data-target="catalog"
+                role="tab"
+                aria-selected="true"
+                aria-controls="{{rootid}}-panel-catalog">
+            {{strings.tabcatalog}}
+        </button>
+        <button type="button"
+                class="aulasaovivo__tab"
+                id="{{rootid}}-tab-enrolled"
+                data-action="switch-panel"
+                data-target="enrolled"
+                role="tab"
+                aria-selected="false"
+                aria-controls="{{rootid}}-panel-enrolled"
+                tabindex="-1">
+            {{strings.tabenrolled}}
+        </button>
+        <button type="button"
+                class="aulasaovivo__tab"
+                id="{{rootid}}-tab-certificates"
+                data-action="switch-panel"
+                data-target="certificates"
+                role="tab"
+                aria-selected="false"
+                aria-controls="{{rootid}}-panel-certificates"
+                tabindex="-1">
+            {{strings.tabcertificates}}
+        </button>
+    </div>
     <div class="aulasaovivo__dashboard" data-region="dashboard">
-        <section class="aulasaovivo__panel" data-panel="catalog">
+        <section class="aulasaovivo__panel"
+                 data-panel="catalog"
+                 id="{{rootid}}-panel-catalog"
+                 role="tabpanel"
+                 aria-labelledby="{{rootid}}-tab-catalog"
+                 aria-hidden="false"
+                 tabindex="0">
             <header class="aulasaovivo__panel-header">
                 <div class="aulasaovivo__panel-titles">
                     <span class="aulasaovivo__panel-title">{{strings.catalogtitle}}</span>
@@ -32,7 +72,14 @@
                 </div>
             </div>
         </section>
-        <section class="aulasaovivo__panel" data-panel="enrolled">
+        <section class="aulasaovivo__panel"
+                 data-panel="enrolled"
+                 id="{{rootid}}-panel-enrolled"
+                 role="tabpanel"
+                 aria-labelledby="{{rootid}}-tab-enrolled"
+                 aria-hidden="true"
+                 tabindex="-1"
+                 hidden>
             <header class="aulasaovivo__panel-header">
                 <div class="aulasaovivo__panel-titles">
                     <span class="aulasaovivo__panel-title">{{strings.enrolledtitle}}</span>
@@ -60,7 +107,14 @@
                 </div>
             </div>
         </section>
-        <section class="aulasaovivo__panel" data-panel="certificates">
+        <section class="aulasaovivo__panel"
+                 data-panel="certificates"
+                 id="{{rootid}}-panel-certificates"
+                 role="tabpanel"
+                 aria-labelledby="{{rootid}}-tab-certificates"
+                 aria-hidden="true"
+                 tabindex="-1"
+                 hidden>
             <header class="aulasaovivo__panel-header">
                 <div class="aulasaovivo__panel-titles">
                     <span class="aulasaovivo__panel-title">{{strings.certificatestitle}}</span>

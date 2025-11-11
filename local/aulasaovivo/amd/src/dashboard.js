@@ -16,6 +16,7 @@
 define(['core/ajax', 'core/notification'], function(Ajax, Notification) {
     const SELECTORS = {
         panel: type => `.aulasaovivo__panel[data-panel="${type}"]`,
+        panels: '.aulasaovivo__panel',
         cards: '[data-region="cards"]',
         agenda: '[data-region="agenda"]',
         refresh: '[data-action="refresh"]',
@@ -23,7 +24,8 @@ define(['core/ajax', 'core/notification'], function(Ajax, Notification) {
         nav: '[data-action="scroll"]',
         feedback: '[data-region="feedback"]',
         notice: '[data-region="fallback-notice"]',
-        certificateList: '[data-region="certificates"]'
+        certificateList: '[data-region="certificates"]',
+        tab: '[data-action="switch-panel"]'
     };
 
     const countdownRegistry = new Map();
@@ -32,8 +34,11 @@ define(['core/ajax', 'core/notification'], function(Ajax, Notification) {
         root: null,
         config: null,
         fallback: false,
-        formatters: {}
+        formatters: {},
+        activePanel: 'catalog'
     };
+
+    let tabs = [];
 
     /**
      * Normalises locale strings into a BCP 47 compatible format.
@@ -107,10 +112,14 @@ define(['core/ajax', 'core/notification'], function(Ajax, Notification) {
             root,
             config,
             fallback: false,
-            formatters: buildFormatters(config)
+            formatters: buildFormatters(config),
+            activePanel: 'catalog'
         };
 
+        tabs = [];
+
         setupNavigation();
+        setupTabs();
         setupRefresh();
         refreshPanels();
     };
@@ -243,6 +252,134 @@ define(['core/ajax', 'core/notification'], function(Ajax, Notification) {
 
             updateButtons();
         });
+    };
+
+    /**
+     * Activates the requested panel and updates tab state.
+     *
+     * @param {String} type
+     * @param {Object} [options]
+     */
+    const setActivePanel = (type, options = {}) => {
+        if (!type) {
+            return;
+        }
+
+        const targetPanel = findPanel(type);
+        if (!targetPanel) {
+            return;
+        }
+
+        const {focus = false, force = false, refresh = false} = options;
+
+        if (state.activePanel === type && !force) {
+            if (focus) {
+                const activeTab = tabs.find(tab => tab.dataset.target === type);
+                if (activeTab) {
+                    activeTab.focus();
+                }
+            }
+            return;
+        }
+
+        tabs.forEach(tab => {
+            const isActive = tab.dataset.target === type;
+            tab.setAttribute('aria-selected', isActive ? 'true' : 'false');
+            tab.setAttribute('tabindex', isActive ? '0' : '-1');
+            tab.classList.toggle('is-active', isActive);
+            if (isActive && focus) {
+                tab.focus();
+            }
+        });
+
+        state.root.querySelectorAll(SELECTORS.panels).forEach(panel => {
+            const isActive = panel.dataset.panel === type;
+            panel.setAttribute('aria-hidden', isActive ? 'false' : 'true');
+            panel.setAttribute('tabindex', isActive ? '0' : '-1');
+            if (isActive) {
+                panel.hidden = false;
+                panel.removeAttribute('hidden');
+            } else {
+                panel.hidden = true;
+            }
+        });
+
+        state.activePanel = type;
+
+        window.requestAnimationFrame(() => {
+            targetPanel.querySelectorAll(SELECTORS.carousel).forEach(container => {
+                if (typeof container._aulasaovivoUpdateNav === 'function') {
+                    container._aulasaovivoUpdateNav();
+                }
+            });
+        });
+
+        if (refresh) {
+            refreshPanels(type);
+        }
+    };
+
+    /**
+     * Initialises tab navigation.
+     */
+    const setupTabs = () => {
+        tabs = Array.from(state.root.querySelectorAll(SELECTORS.tab));
+        if (!tabs.length) {
+            return;
+        }
+
+        const selected = tabs.find(tab => tab.getAttribute('aria-selected') === 'true' && tab.dataset.target);
+        if (selected) {
+            state.activePanel = selected.dataset.target;
+        }
+
+        const focusByOffset = offset => {
+            if (!tabs.length) {
+                return;
+            }
+
+            const currentIndex = tabs.findIndex(tab => tab.getAttribute('aria-selected') === 'true');
+            const safeIndex = currentIndex === -1 ? 0 : currentIndex;
+            const targetIndex = (safeIndex + offset + tabs.length) % tabs.length;
+            const target = tabs[targetIndex];
+            if (target && target.dataset.target) {
+                setActivePanel(target.dataset.target, {focus: true});
+            }
+        };
+
+        tabs.forEach(tab => {
+            tab.addEventListener('click', event => {
+                event.preventDefault();
+                if (!tab.dataset.target) {
+                    return;
+                }
+                setActivePanel(tab.dataset.target, {focus: false});
+            });
+
+            tab.addEventListener('keydown', event => {
+                if (event.key === 'ArrowRight' || event.key === 'ArrowDown') {
+                    event.preventDefault();
+                    focusByOffset(1);
+                } else if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') {
+                    event.preventDefault();
+                    focusByOffset(-1);
+                } else if (event.key === 'Home') {
+                    event.preventDefault();
+                    const first = tabs[0];
+                    if (first && first.dataset.target) {
+                        setActivePanel(first.dataset.target, {focus: true});
+                    }
+                } else if (event.key === 'End') {
+                    event.preventDefault();
+                    const last = tabs[tabs.length - 1];
+                    if (last && last.dataset.target) {
+                        setActivePanel(last.dataset.target, {focus: true});
+                    }
+                }
+            });
+        });
+
+        setActivePanel(state.activePanel, {focus: false, force: true});
     };
 
     /**
@@ -493,6 +630,7 @@ define(['core/ajax', 'core/notification'], function(Ajax, Notification) {
         }
 
         list.innerHTML = '';
+        list.scrollLeft = 0;
 
         if (!certificates.length) {
             const empty = document.createElement('div');
@@ -503,46 +641,69 @@ define(['core/ajax', 'core/notification'], function(Ajax, Notification) {
         }
 
         certificates.forEach(certificate => {
-            const item = document.createElement('article');
-            item.className = 'aulasaovivo__certificate';
+            const card = document.createElement('article');
+            card.className = 'aulasaovivo__certificate-card';
+
+            const previewElement = document.createElement(certificate.fileurl ? 'a' : 'div');
+            previewElement.className = 'aulasaovivo__certificate-card-preview';
+
+            if (certificate.previewurl) {
+                previewElement.style.setProperty('--certificate-preview', `url('${certificate.previewurl}')`);
+            }
+
+            if (certificate.fileurl) {
+                previewElement.href = certificate.fileurl;
+                previewElement.target = '_blank';
+                previewElement.rel = 'noopener';
+                const label = certificate.filename || state.config.strings.certificatedownload;
+                previewElement.setAttribute('aria-label', label);
+                previewElement.title = label;
+            } else {
+                previewElement.classList.add('is-disabled');
+                previewElement.setAttribute('aria-hidden', 'true');
+            }
+
+            const overlay = document.createElement('div');
+            overlay.className = 'aulasaovivo__certificate-card-overlay';
+
+            const actionLabel = document.createElement('span');
+            actionLabel.className = 'aulasaovivo__certificate-card-action';
+            actionLabel.textContent = state.config.strings.certificatedownload;
+            overlay.appendChild(actionLabel);
+
+            previewElement.appendChild(overlay);
+            card.appendChild(previewElement);
+
+            const info = document.createElement('div');
+            info.className = 'aulasaovivo__certificate-card-info';
 
             const title = document.createElement('h3');
-            title.className = 'aulasaovivo__certificate-title';
+            title.className = 'aulasaovivo__certificate-card-title';
             title.textContent = certificate.sessionname || '';
-            item.appendChild(title);
+            info.appendChild(title);
 
             if (certificate.coursename) {
                 const course = document.createElement('div');
-                course.className = 'aulasaovivo__certificate-course';
+                course.className = 'aulasaovivo__certificate-card-course';
                 course.textContent = certificate.coursename;
-                item.appendChild(course);
+                info.appendChild(course);
             }
 
-            const date = document.createElement('div');
-            date.className = 'aulasaovivo__certificate-date';
             const formatted = certificate.issuedatestring || formatDateValue(certificate.issuedate);
             if (formatted) {
+                const meta = document.createElement('div');
+                meta.className = 'aulasaovivo__certificate-card-meta';
+
+                const date = document.createElement('span');
+                date.className = 'aulasaovivo__certificate-card-date';
                 date.textContent = `${state.config.strings.certificateissuedon} ${formatted}`;
-            } else {
-                date.textContent = state.config.strings.certificateissuedon;
-            }
-            item.appendChild(date);
+                meta.appendChild(date);
 
-            if (certificate.fileurl) {
-                const actions = document.createElement('div');
-                actions.className = 'aulasaovivo__certificate-actions';
-                const link = document.createElement('a');
-                link.href = certificate.fileurl;
-                link.target = '_blank';
-                link.rel = 'noopener noreferrer';
-                link.classList.add('aulasaovivo__button');
-                link.setAttribute('data-variant', 'primary');
-                link.textContent = state.config.strings.certificatedownload;
-                actions.appendChild(link);
-                item.appendChild(actions);
+                info.appendChild(meta);
             }
 
-            list.appendChild(item);
+            card.appendChild(info);
+            list.appendChild(card);
         });
     };
 
