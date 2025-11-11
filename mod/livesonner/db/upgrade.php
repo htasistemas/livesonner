@@ -111,7 +111,7 @@ function xmldb_livesonner_upgrade(int $oldversion): bool {
             $table->add_key('userid', XMLDB_KEY_FOREIGN, ['userid'], 'user', ['id']);
 
             $table->add_index('session_user', XMLDB_INDEX_UNIQUE, ['livesonnerid', 'userid']);
-            $table->add_index('userid_idx', XMLDB_INDEX_NOTUNIQUE, ['userid', 'timecreated']);
+            $table->add_index('userid_timecreated_idx', XMLDB_INDEX_NOTUNIQUE, ['userid', 'timecreated']);
 
             $dbman->create_table($table);
         }
