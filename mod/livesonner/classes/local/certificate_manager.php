@@ -25,6 +25,7 @@ use core_date;
 use core_user;
 use moodle_exception;
 use moodle_url;
+use stored_file;
 
 /**
  * Helper responsible for issuing and listing certificates for live classes.
@@ -217,6 +218,91 @@ class certificate_manager {
         }
 
         return $certificates;
+    }
+
+    /**
+     * Stores a manually uploaded certificate for a given user and session.
+     *
+     * @param int $sessionid
+     * @param int $userid
+     * @param stored_file $file
+     * @param string $name
+     * @return array<string, mixed>
+     */
+    public static function store_manual_certificate(int $sessionid, int $userid, stored_file $file, string $name = ''): array {
+        global $DB;
+
+        $session = $DB->get_record('livesonner', ['id' => $sessionid], '*', MUST_EXIST);
+        $course = $DB->get_record('course', ['id' => $session->course], '*', MUST_EXIST);
+        $cm = get_coursemodule_from_instance('livesonner', $session->id, 0, false, MUST_EXIST);
+        $context = context_module::instance($cm->id);
+
+        $filename = trim($name) !== '' ? $name : $file->get_filename();
+        $filename = clean_filename($filename);
+        if ($filename === '') {
+            $filename = 'certificado.pdf';
+        }
+        if (!preg_match('/\.pdf$/i', $filename)) {
+            $filename .= '.pdf';
+        }
+
+        $now = time();
+        $record = $DB->get_record('livesonner_certificates', [
+            'livesonnerid' => $session->id,
+            'userid' => $userid,
+        ]);
+
+        if ($record) {
+            $record->filename = $filename;
+            $record->timecreated = $now;
+            $record->timemodified = $now;
+            $DB->update_record('livesonner_certificates', $record);
+            $itemid = $record->id;
+        } else {
+            $record = (object) [
+                'livesonnerid' => $session->id,
+                'userid' => $userid,
+                'filename' => $filename,
+                'timecreated' => $now,
+                'timemodified' => $now,
+            ];
+            $itemid = $DB->insert_record('livesonner_certificates', $record);
+            $record->id = $itemid;
+        }
+
+        $fs = get_file_storage();
+        $fs->delete_area_files($context->id, 'mod_livesonner', self::FILEAREA, $itemid);
+
+        $filerecord = [
+            'contextid' => $context->id,
+            'component' => 'mod_livesonner',
+            'filearea' => self::FILEAREA,
+            'itemid' => $itemid,
+            'filepath' => '/',
+            'filename' => $filename,
+        ];
+        $fs->create_file_from_storedfile($filerecord, $file);
+
+        $coursecontext = context_course::instance($course->id);
+        $modulecontext = context_module::instance($cm->id);
+
+        return [
+            'id' => $record->id,
+            'sessionid' => $session->id,
+            'sessionname' => format_string($session->name, true, ['context' => $modulecontext]),
+            'coursename' => format_string($course->fullname, true, ['context' => $coursecontext]),
+            'issuedate' => $now,
+            'issuedatestring' => userdate($now, get_string('strftimedatefullshort', 'core_langconfig')),
+            'fileurl' => moodle_url::make_pluginfile_url(
+                $context->id,
+                'mod_livesonner',
+                self::FILEAREA,
+                $record->id,
+                '/',
+                $filename
+            )->out(false),
+            'filename' => $filename,
+        ];
     }
 
     /**

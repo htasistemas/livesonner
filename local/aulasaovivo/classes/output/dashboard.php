@@ -18,6 +18,7 @@ namespace local_aulasaovivo\output;
 
 defined('MOODLE_INTERNAL') || die();
 
+use context_system;
 use html_writer;
 use renderable;
 use renderer_base;
@@ -38,6 +39,9 @@ class dashboard implements renderable, templatable {
     /** @var array */
     protected array $jsconfig;
 
+    /** @var bool */
+    protected bool $canmanualcertificates;
+
     /**
      * dashboard constructor.
      */
@@ -45,6 +49,9 @@ class dashboard implements renderable, templatable {
         global $USER;
 
         $this->rootid = html_writer::random_id('local-aulasaovivo');
+
+        $systemcontext = context_system::instance();
+        $this->canmanualcertificates = has_capability('moodle/site:config', $systemcontext);
 
         $this->strings = $this->resolve_strings([
             'catalogtitle',
@@ -71,6 +78,7 @@ class dashboard implements renderable, templatable {
             'locationlabel',
             'instructorlabel',
             'taglabel',
+            'manualcertificatebutton',
         ]);
 
         $jsstrings = $this->resolve_strings([
@@ -93,6 +101,9 @@ class dashboard implements renderable, templatable {
             'toastdefault',
             'certificateissuedon',
             'certificatedownload',
+            'manualcertificatetitle',
+            'manualcertificatesuccess',
+            'manualcertificateerror',
         ]);
 
         $jsstrings['fallbacknotice'] = $this->strings['fallbacknotice'];
@@ -117,6 +128,7 @@ class dashboard implements renderable, templatable {
             ],
             'locale' => str_replace('_', '-', current_language()),
             'timezone' => \core_date::get_user_timezone(),
+            'canmanualcertificates' => $this->canmanualcertificates,
         ];
     }
 
@@ -131,6 +143,7 @@ class dashboard implements renderable, templatable {
             'rootid' => $this->rootid,
             'strings' => $this->strings,
             'configjson' => $this->get_config_json(),
+            'canmanualcertificates' => $this->canmanualcertificates,
         ];
     }
 
