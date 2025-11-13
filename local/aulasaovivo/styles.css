@@ -38,6 +38,53 @@
     transform: translate(-50%, -8px);
 }
 
+.aulasaovivo__tabs {
+    display: flex;
+    gap: 12px;
+    max-width: 1120px;
+    margin: 0 auto 28px;
+    padding: 0 12px;
+    overflow-x: auto;
+    scrollbar-width: none;
+}
+
+.aulasaovivo__tabs::-webkit-scrollbar {
+    display: none;
+}
+
+.aulasaovivo__tab {
+    border: none;
+    background: rgba(15, 23, 42, 0.06);
+    color: #6b7280;
+    padding: 12px 22px;
+    border-radius: 999px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: transform 0.25s ease, box-shadow 0.25s ease, background 0.25s ease, color 0.25s ease;
+    white-space: nowrap;
+    position: relative;
+}
+
+.aulasaovivo__tab:hover {
+    background: rgba(15, 23, 42, 0.12);
+    color: #111827;
+}
+
+.aulasaovivo__tab.is-active,
+.aulasaovivo__tab[aria-selected="true"] {
+    background: linear-gradient(135deg, #ef4444, #f97316);
+    color: #fff;
+    box-shadow: 0 16px 32px rgba(239, 68, 68, 0.35);
+}
+
+.aulasaovivo__tab:focus-visible {
+    outline: 3px solid rgba(13, 110, 253, 0.4);
+    outline-offset: 3px;
+}
+
 .aulasaovivo__dashboard {
     display: grid;
     gap: 24px;
@@ -357,44 +404,149 @@
 
 .aulasaovivo__certificates {
     display: flex;
-    flex-direction: column;
-    gap: 16px;
-    padding: 0 24px 8px;
+    gap: 20px;
+    padding: 0 24px 20px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(148, 163, 184, 0.5) transparent;
 }
 
-.aulasaovivo__certificate {
+.aulasaovivo__certificates::-webkit-scrollbar {
+    height: 6px;
+}
+
+.aulasaovivo__certificates::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.aulasaovivo__certificates::-webkit-scrollbar-thumb {
+    background: rgba(148, 163, 184, 0.6);
+    border-radius: 999px;
+}
+
+.aulasaovivo__certificates > .aulasaovivo__empty {
+    flex: 1 1 100%;
     background: #f8fafc;
-    border: 1px solid #e5e7eb;
     border-radius: 12px;
-    padding: 18px 20px;
+    border: 1px solid #e5e7eb;
+    padding: 24px;
+    text-align: center;
+    color: #4b5563;
+    box-shadow: 0 12px 24px rgba(15, 23, 42, 0.08);
+}
+
+.aulasaovivo__certificate-card {
+    flex: 0 0 clamp(220px, 28vw, 320px);
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
+    gap: 14px;
+    scroll-snap-align: start;
 }
 
-.aulasaovivo__certificate-title {
+.aulasaovivo__certificate-card-preview {
+    position: relative;
+    display: block;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    border-radius: 18px;
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.75), rgba(249, 115, 22, 0.75));
+    background-image: var(--certificate-preview, linear-gradient(135deg, rgba(239, 68, 68, 0.85), rgba(249, 115, 22, 0.85)));
+    background-size: cover;
+    background-position: center;
+    overflow: hidden;
+    box-shadow: 0 20px 45px rgba(15, 23, 42, 0.28);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.aulasaovivo__certificate-card-preview::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(15, 23, 42, 0.05) 0%, rgba(15, 23, 42, 0.75) 100%);
+    opacity: 0.65;
+    transition: opacity 0.3s ease;
+}
+
+.aulasaovivo__certificate-card-preview:hover,
+.aulasaovivo__certificate-card-preview:focus-visible {
+    transform: translateY(-6px) scale(1.02);
+    box-shadow: 0 28px 55px rgba(15, 23, 42, 0.38);
+}
+
+.aulasaovivo__certificate-card-preview:hover::before,
+.aulasaovivo__certificate-card-preview:focus-visible::before {
+    opacity: 0.85;
+}
+
+.aulasaovivo__certificate-card-preview.is-disabled {
+    cursor: default;
+    opacity: 0.75;
+    box-shadow: 0 16px 32px rgba(15, 23, 42, 0.18);
+}
+
+.aulasaovivo__certificate-card-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    padding: 20px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.aulasaovivo__certificate-card-preview:hover .aulasaovivo__certificate-card-overlay,
+.aulasaovivo__certificate-card-preview:focus-visible .aulasaovivo__certificate-card-overlay,
+.aulasaovivo__certificate-card-preview.is-disabled .aulasaovivo__certificate-card-overlay {
+    opacity: 1;
+}
+
+.aulasaovivo__certificate-card-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    border-radius: 999px;
+    background: rgba(15, 23, 42, 0.75);
+    color: #fff;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.35);
+}
+
+.aulasaovivo__certificate-card-info {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.aulasaovivo__certificate-card-title {
     margin: 0;
     font-size: 1rem;
+    font-weight: 700;
     color: #0f172a;
 }
 
-.aulasaovivo__certificate-course {
-    font-size: 0.9rem;
+.aulasaovivo__certificate-card-course {
+    font-size: 0.88rem;
     color: #4b5563;
 }
 
-.aulasaovivo__certificate-date {
-    font-size: 0.85rem;
+.aulasaovivo__certificate-card-meta {
+    display: flex;
+    gap: 8px;
+    font-size: 0.8rem;
     color: #6b7280;
-    text-transform: uppercase;
     letter-spacing: 0.08em;
+    text-transform: uppercase;
 }
 
-.aulasaovivo__certificate-actions {
-    margin-top: 4px;
-    display: flex;
-    justify-content: flex-start;
+.aulasaovivo__certificate-card-date {
+    white-space: nowrap;
 }
 
 .aulasaovivo__agenda {
