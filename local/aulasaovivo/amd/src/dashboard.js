@@ -39,6 +39,7 @@ define(['core/ajax', 'core/notification'], function(Ajax, Notification) {
     };
 
     let tabs = [];
+    const initialisedRoots = new Set();
 
     /**
      * Normalises locale strings into a BCP 47 compatible format.
@@ -93,8 +94,8 @@ define(['core/ajax', 'core/notification'], function(Ajax, Notification) {
         }
     };
 
-    const init = rootid => {
-        if (!rootid) {
+    const boot = rootid => {
+        if (!rootid || initialisedRoots.has(rootid)) {
             return;
         }
 
@@ -107,6 +108,8 @@ define(['core/ajax', 'core/notification'], function(Ajax, Notification) {
         if (!config) {
             return;
         }
+
+        initialisedRoots.add(rootid);
 
         state = {
             root,
@@ -122,6 +125,19 @@ define(['core/ajax', 'core/notification'], function(Ajax, Notification) {
         setupTabs();
         setupRefresh();
         refreshPanels();
+    };
+
+    const init = rootid => {
+        if (!rootid) {
+            return;
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => boot(rootid), {once: true});
+            return;
+        }
+
+        boot(rootid);
     };
 
     /**

@@ -46,32 +46,62 @@ class dashboard implements renderable, templatable {
 
         $this->rootid = html_writer::random_id('local-aulasaovivo');
 
-        $this->strings = [
-            'catalogtitle' => get_string('catalogtitle', 'local_aulasaovivo'),
-            'catalogsubtitle' => get_string('catalogsubtitle', 'local_aulasaovivo'),
-            'enrolledtitle' => get_string('enrolledtitle', 'local_aulasaovivo'),
-            'enrolledsubtitle' => get_string('enrolledsubtitle', 'local_aulasaovivo'),
-            'certificatestitle' => get_string('certificatestitle', 'local_aulasaovivo'),
-            'certificatessubtitle' => get_string('certificatessubtitle', 'local_aulasaovivo'),
-            'tabcatalog' => get_string('tabcatalog', 'local_aulasaovivo'),
-            'tabenrolled' => get_string('tabenrolled', 'local_aulasaovivo'),
-            'tabcertificates' => get_string('tabcertificates', 'local_aulasaovivo'),
-            'tablistlabel' => get_string('tablistlabel', 'local_aulasaovivo'),
-            'refresh' => get_string('refresh', 'local_aulasaovivo'),
-            'previous' => get_string('previous', 'local_aulasaovivo'),
-            'next' => get_string('next', 'local_aulasaovivo'),
-            'fallbacknotice' => get_string('fallbacknotice', 'local_aulasaovivo'),
-            'agendatitlecatalog' => get_string('agendatitlecatalog', 'local_aulasaovivo'),
-            'agendatitleenrolled' => get_string('agendatitleenrolled', 'local_aulasaovivo'),
-            'agendapast' => get_string('agendapast', 'local_aulasaovivo'),
-            'agendalive' => get_string('agendalive', 'local_aulasaovivo'),
-            'agendaunconfirmed' => get_string('agendaunconfirmed', 'local_aulasaovivo'),
-            'startslabel' => get_string('startslabel', 'local_aulasaovivo'),
-            'endslabel' => get_string('endslabel', 'local_aulasaovivo'),
-            'locationlabel' => get_string('locationlabel', 'local_aulasaovivo'),
-            'instructorlabel' => get_string('instructorlabel', 'local_aulasaovivo'),
-            'taglabel' => get_string('taglabel', 'local_aulasaovivo'),
-        ];
+        $this->strings = $this->resolve_strings([
+            'catalogtitle',
+            'catalogsubtitle',
+            'enrolledtitle',
+            'enrolledsubtitle',
+            'certificatestitle',
+            'certificatessubtitle',
+            'tabcatalog',
+            'tabenrolled',
+            'tabcertificates',
+            'tablistlabel',
+            'refresh',
+            'previous',
+            'next',
+            'fallbacknotice',
+            'agendatitlecatalog',
+            'agendatitleenrolled',
+            'agendapast',
+            'agendalive',
+            'agendaunconfirmed',
+            'startslabel',
+            'endslabel',
+            'locationlabel',
+            'instructorlabel',
+            'taglabel',
+        ]);
+
+        $jsstrings = $this->resolve_strings([
+            'emptycatalog',
+            'emptyenrolled',
+            'emptycertificates',
+            'enrolsuccess',
+            'enrolfailure',
+            'integrationmissing',
+            'processing',
+            'countdownlabel',
+            'countdownlive',
+            'countdownfinished',
+            'accesssession',
+            'enrolsession',
+            'sessionclosed',
+            'seemore',
+            'enrolledbadge',
+            'confirmedbadge',
+            'toastdefault',
+            'certificateissuedon',
+            'certificatedownload',
+        ]);
+
+        $jsstrings['fallbacknotice'] = $this->strings['fallbacknotice'];
+        $jsstrings['startslabel'] = $this->strings['startslabel'];
+        $jsstrings['locationlabel'] = $this->strings['locationlabel'];
+        $jsstrings['instructorlabel'] = $this->strings['instructorlabel'];
+        $jsstrings['agendapast'] = $this->strings['agendapast'];
+        $jsstrings['agendalive'] = $this->strings['agendalive'];
+        $jsstrings['agendaunconfirmed'] = $this->strings['agendaunconfirmed'];
 
         $this->jsconfig = [
             'rootid' => $this->rootid,
@@ -81,34 +111,7 @@ class dashboard implements renderable, templatable {
                 'enrol' => 'local_aulasaovivo_enrol_session',
                 'certificates' => 'local_aulasaovivo_get_certificates',
             ],
-            'strings' => [
-                'emptycatalog' => get_string('emptycatalog', 'local_aulasaovivo'),
-                'emptyenrolled' => get_string('emptyenrolled', 'local_aulasaovivo'),
-                'emptycertificates' => get_string('emptycertificates', 'local_aulasaovivo'),
-                'fallbacknotice' => $this->strings['fallbacknotice'],
-                'enrolsuccess' => get_string('enrolsuccess', 'local_aulasaovivo'),
-                'enrolfailure' => get_string('enrolfailure', 'local_aulasaovivo'),
-                'integrationmissing' => get_string('integrationmissing', 'local_aulasaovivo'),
-                'processing' => get_string('processing', 'local_aulasaovivo'),
-                'countdownlabel' => get_string('countdownlabel', 'local_aulasaovivo'),
-                'countdownlive' => get_string('countdownlive', 'local_aulasaovivo'),
-                'countdownfinished' => get_string('countdownfinished', 'local_aulasaovivo'),
-                'accesssession' => get_string('accesssession', 'local_aulasaovivo'),
-                'enrolsession' => get_string('enrolsession', 'local_aulasaovivo'),
-                'sessionclosed' => get_string('sessionclosed', 'local_aulasaovivo'),
-                'seemore' => get_string('seemore', 'local_aulasaovivo'),
-                'enrolledbadge' => get_string('enrolledbadge', 'local_aulasaovivo'),
-                'confirmedbadge' => get_string('confirmedbadge', 'local_aulasaovivo'),
-                'startslabel' => $this->strings['startslabel'],
-                'locationlabel' => $this->strings['locationlabel'],
-                'instructorlabel' => $this->strings['instructorlabel'],
-                'agendapast' => $this->strings['agendapast'],
-                'agendalive' => $this->strings['agendalive'],
-                'agendaunconfirmed' => $this->strings['agendaunconfirmed'],
-                'toastdefault' => get_string('toastdefault', 'local_aulasaovivo'),
-                'certificateissuedon' => get_string('certificateissuedon', 'local_aulasaovivo'),
-                'certificatedownload' => get_string('certificatedownload', 'local_aulasaovivo'),
-            ],
+            'strings' => $jsstrings,
             'user' => [
                 'id' => $USER->id,
             ],
@@ -156,5 +159,52 @@ class dashboard implements renderable, templatable {
      */
     public function get_rootid(): string {
         return $this->rootid;
+    }
+
+    /**
+     * Returns an associative array of resolved language strings.
+     *
+     * @param array $identifiers
+     * @return array<string, string>
+     */
+    protected function resolve_strings(array $identifiers): array {
+        $strings = [];
+        foreach ($identifiers as $key => $identifier) {
+            if (is_int($key)) {
+                $key = $identifier;
+            }
+            $strings[$key] = $this->resolve_string($identifier);
+        }
+
+        return $strings;
+    }
+
+    /**
+     * Safely retrieves a language string, falling back to English when needed.
+     *
+     * @param string $identifier
+     * @return string
+     */
+    protected function resolve_string(string $identifier): string {
+        $value = get_string($identifier, 'local_aulasaovivo');
+        if ($this->is_missing_string($value)) {
+            $value = get_string($identifier, 'local_aulasaovivo', null, 'en');
+        }
+
+        if ($this->is_missing_string($value)) {
+            return $identifier;
+        }
+
+        return $value;
+    }
+
+    /**
+     * Detects missing string placeholders.
+     *
+     * @param string $value
+     * @return bool
+     */
+    protected function is_missing_string(string $value): bool {
+        return preg_match('/^\[\[[^\]]+\]\]$/', $value) === 1;
     }
 }
