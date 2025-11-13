@@ -75,9 +75,9 @@
 
 .aulasaovivo__tab.is-active,
 .aulasaovivo__tab[aria-selected="true"] {
-    background: linear-gradient(135deg, #ef4444, #f97316);
+    background: linear-gradient(135deg, #0d6efd, #2563eb);
     color: #fff;
-    box-shadow: 0 16px 32px rgba(239, 68, 68, 0.35);
+    box-shadow: 0 16px 32px rgba(13, 110, 253, 0.35);
 }
 
 .aulasaovivo__tab:focus-visible {
