@@ -41,6 +41,67 @@ define(['core/ajax', 'core/notification', 'core_form/modalform', 'core/modal_eve
     };
     let manualCertificateModal = null;
 
+    /**
+     * Returns the available events for a modal form instance.
+     *
+     * @param {ModalForm} modal
+     * @returns {?Object}
+     */
+    const getModalFormEvents = modal => {
+        if (modal && modal.events) {
+            return modal.events;
+        }
+
+        if (ModalForm && ModalForm.events) {
+            return ModalForm.events;
+        }
+
+        return null;
+    };
+
+    /**
+     * Retrieves an event name from a list of events.
+     *
+     * @param {Object} events
+     * @param {String} key
+     * @param {String} fallback
+     * @returns {String}
+     */
+    const getEventName = (events, key, fallback) => {
+        if (events && Object.prototype.hasOwnProperty.call(events, key)) {
+            return events[key];
+        }
+
+        const lower = key.toLowerCase();
+        if (events && Object.prototype.hasOwnProperty.call(events, lower)) {
+            return events[lower];
+        }
+
+        return fallback;
+    };
+
+    /**
+     * Ensures an Error instance is returned for notifications.
+     *
+     * @param {any} error
+     * @returns {Error}
+     */
+    const normaliseModalError = error => {
+        if (error instanceof Error) {
+            return error;
+        }
+
+        if (error && typeof error === 'object' && typeof error.message === 'string' && error.message) {
+            return error;
+        }
+
+        const fallback = state.config && state.config.strings ?
+            (state.config.strings.manualcertificateerror || state.config.strings.toastdefault || 'Error') :
+            'Error';
+
+        return new Error(fallback);
+    };
+
     const DEFAULT_CONFIG = {
         services: {
             catalog: null,
@@ -504,8 +565,9 @@ define(['core/ajax', 'core/notification', 'core_form/modalform', 'core/modal_eve
 
         if (manualCertificateModal) {
             manualCertificateModal.show().catch(error => {
+                const normalised = normaliseModalError(error);
                 manualCertificateModal = null;
-                Notification.exception(error);
+                Notification.exception(normalised);
                 showToast(state.config.strings.manualcertificateerror);
             });
             return;
@@ -519,20 +581,28 @@ define(['core/ajax', 'core/notification', 'core_form/modalform', 'core/modal_eve
             }
         });
 
-        manualCertificateModal.addEventListener(manualCertificateModal.events.FORM_SUBMITTED, event => {
-            const detail = event && event.detail ? event.detail : {};
-            const message = detail.message || state.config.strings.manualcertificatesuccess;
-            showToast(message);
-            refreshPanels('certificates');
-        });
+        const events = getModalFormEvents(manualCertificateModal);
+        const submittedEvent = getEventName(events, 'FORM_SUBMITTED', 'formSubmitted');
+        if (submittedEvent && typeof manualCertificateModal.addEventListener === 'function') {
+            manualCertificateModal.addEventListener(submittedEvent, event => {
+                const detail = event && event.detail ? event.detail : {};
+                const message = detail.message || state.config.strings.manualcertificatesuccess;
+                showToast(message);
+                refreshPanels('certificates');
+            });
+        }
 
-        manualCertificateModal.addEventListener(ModalEvents.destroyed, () => {
-            manualCertificateModal = null;
-        });
+        const destroyedEvent = ModalEvents && ModalEvents.destroyed ? ModalEvents.destroyed : 'destroyed';
+        if (typeof manualCertificateModal.addEventListener === 'function') {
+            manualCertificateModal.addEventListener(destroyedEvent, () => {
+                manualCertificateModal = null;
+            });
+        }
 
         manualCertificateModal.show().catch(error => {
+            const normalised = normaliseModalError(error);
             manualCertificateModal = null;
-            Notification.exception(error);
+            Notification.exception(normalised);
             showToast(state.config.strings.manualcertificateerror);
         });
     };
