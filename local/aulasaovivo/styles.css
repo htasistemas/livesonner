@@ -123,6 +123,12 @@
     gap: 4px;
 }
 
+.aulasaovivo__panel-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
 .aulasaovivo__panel-title {
     font-size: 1rem;
     letter-spacing: 0.08em;
@@ -160,6 +166,26 @@
     background: #9ca3af;
     cursor: not-allowed;
     box-shadow: none;
+}
+
+.aulasaovivo__manualcert {
+    border: 1px solid #0d6efd;
+    background: #fff;
+    color: #0d6efd;
+    padding: 9px 16px;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+    transition: background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.aulasaovivo__manualcert:hover,
+.aulasaovivo__manualcert:focus {
+    background-color: #0d6efd;
+    color: #fff;
+    box-shadow: 0 6px 12px rgba(13, 110, 253, 0.25);
 }
 
 .aulasaovivo__panel-body {

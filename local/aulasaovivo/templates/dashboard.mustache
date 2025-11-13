@@ -50,9 +50,11 @@
                     <span class="aulasaovivo__panel-title">{{#str}}catalogtitle, local_aulasaovivo{{/str}}</span>
                     <span class="aulasaovivo__panel-subtitle">{{#str}}catalogsubtitle, local_aulasaovivo{{/str}}</span>
                 </div>
-                <button type="button" class="aulasaovivo__refresh" data-action="refresh" data-target="catalog">
-                    {{#str}}refresh, local_aulasaovivo{{/str}}
-                </button>
+                <div class="aulasaovivo__panel-actions">
+                    <button type="button" class="aulasaovivo__refresh" data-action="refresh" data-target="catalog">
+                        {{#str}}refresh, local_aulasaovivo{{/str}}
+                    </button>
+                </div>
             </header>
             <div class="aulasaovivo__panel-body">
                 <div class="aulasaovivo__carousel" data-region="carousel">
@@ -85,9 +87,11 @@
                     <span class="aulasaovivo__panel-title">{{#str}}enrolledtitle, local_aulasaovivo{{/str}}</span>
                     <span class="aulasaovivo__panel-subtitle">{{#str}}enrolledsubtitle, local_aulasaovivo{{/str}}</span>
                 </div>
-                <button type="button" class="aulasaovivo__refresh" data-action="refresh" data-target="enrolled">
-                    {{#str}}refresh, local_aulasaovivo{{/str}}
-                </button>
+                <div class="aulasaovivo__panel-actions">
+                    <button type="button" class="aulasaovivo__refresh" data-action="refresh" data-target="enrolled">
+                        {{#str}}refresh, local_aulasaovivo{{/str}}
+                    </button>
+                </div>
             </header>
             <div class="aulasaovivo__panel-body">
                 <div class="aulasaovivo__carousel" data-region="carousel">
@@ -120,9 +124,16 @@
                     <span class="aulasaovivo__panel-title">{{#str}}certificatestitle, local_aulasaovivo{{/str}}</span>
                     <span class="aulasaovivo__panel-subtitle">{{#str}}certificatessubtitle, local_aulasaovivo{{/str}}</span>
                 </div>
-                <button type="button" class="aulasaovivo__refresh" data-action="refresh" data-target="certificates">
-                    {{#str}}refresh, local_aulasaovivo{{/str}}
-                </button>
+                <div class="aulasaovivo__panel-actions">
+                    <button type="button" class="aulasaovivo__refresh" data-action="refresh" data-target="certificates">
+                        {{#str}}refresh, local_aulasaovivo{{/str}}
+                    </button>
+                    {{#canmanualcertificates}}
+                    <button type="button" class="aulasaovivo__manualcert" data-action="manual-certificate">
+                        {{#str}}manualcertificatebutton, local_aulasaovivo{{/str}}
+                    </button>
+                    {{/canmanualcertificates}}
+                </div>
             </header>
             <div class="aulasaovivo__panel-body">
                 <div class="aulasaovivo__certificates" data-region="certificates"></div>

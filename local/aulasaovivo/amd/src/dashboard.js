@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-define(['core/ajax', 'core/notification'], function(Ajax, Notification) {
+define(['core/ajax', 'core/notification', 'core_form/modalform'], function(Ajax, Notification, ModalForm) {
     const SELECTORS = {
         panel: type => `.aulasaovivo__panel[data-panel="${type}"]`,
         panels: '.aulasaovivo__panel',
@@ -25,7 +25,8 @@ define(['core/ajax', 'core/notification'], function(Ajax, Notification) {
         feedback: '[data-region="feedback"]',
         notice: '[data-region="fallback-notice"]',
         certificateList: '[data-region="certificates"]',
-        tab: '[data-action="switch-panel"]'
+        tab: '[data-action="switch-panel"]',
+        manualCertificate: '[data-action="manual-certificate"]'
     };
 
     const countdownRegistry = new Map();
@@ -37,6 +38,7 @@ define(['core/ajax', 'core/notification'], function(Ajax, Notification) {
         formatters: {},
         activePanel: 'catalog'
     };
+    let manualCertificateModal = null;
 
     const DEFAULT_CONFIG = {
         services: {
@@ -64,6 +66,9 @@ define(['core/ajax', 'core/notification'], function(Ajax, Notification) {
             toastdefault: 'Update finished.',
             certificateissuedon: 'Issued on',
             certificatedownload: 'Download certificate',
+            manualcertificatetitle: 'Issue certificate manually',
+            manualcertificatesuccess: 'Certificate issued successfully.',
+            manualcertificateerror: 'Unable to issue the certificate.',
             fallbacknotice: 'Showing demo data. Connect the catalogue to your class module to load real sessions.',
             startslabel: 'Date and time',
             endslabel: 'End',
@@ -76,7 +81,8 @@ define(['core/ajax', 'core/notification'], function(Ajax, Notification) {
         },
         user: {},
         locale: 'pt-BR',
-        timezone: '99'
+        timezone: '99',
+        canmanualcertificates: false
     };
 
     const normaliseConfig = config => {
@@ -97,6 +103,10 @@ define(['core/ajax', 'core/notification'], function(Ajax, Notification) {
 
         if (typeof safe.timezone === 'undefined' || safe.timezone === null || safe.timezone === '') {
             safe.timezone = DEFAULT_CONFIG.timezone;
+        }
+
+        if (typeof safe.canmanualcertificates !== 'boolean') {
+            safe.canmanualcertificates = DEFAULT_CONFIG.canmanualcertificates;
         }
 
         return safe;
@@ -186,6 +196,7 @@ define(['core/ajax', 'core/notification'], function(Ajax, Notification) {
         setupNavigation();
         setupTabs();
         setupRefresh();
+        setupManualCertificateButton();
         refreshPanels();
     };
 
@@ -480,6 +491,64 @@ define(['core/ajax', 'core/notification'], function(Ajax, Notification) {
         } else if (typeof container._aulasaovivoUpdateNav === 'function') {
             container._aulasaovivoUpdateNav();
         }
+    };
+
+    /**
+     * Opens the modal form to upload a manual certificate.
+     */
+    const openManualCertificateModal = () => {
+        if (!state.config.canmanualcertificates) {
+            return;
+        }
+
+        if (manualCertificateModal) {
+            manualCertificateModal.destroy();
+            manualCertificateModal = null;
+        }
+
+        manualCertificateModal = new ModalForm({
+            formClass: 'local_aulasaovivo\\form\\manual_certificate',
+            args: {},
+            modalConfig: {
+                title: state.config.strings.manualcertificatetitle
+            }
+        });
+
+        manualCertificateModal.addEventListener('form:submitted', event => {
+            const detail = event && event.detail ? event.detail : {};
+            const message = detail.message || state.config.strings.manualcertificatesuccess;
+            showToast(message);
+            refreshPanels('certificates');
+        });
+
+        manualCertificateModal.addEventListener('hidden', () => {
+            manualCertificateModal = null;
+        });
+
+        manualCertificateModal.show().catch(error => {
+            manualCertificateModal = null;
+            Notification.exception(error);
+            showToast(state.config.strings.manualcertificateerror);
+        });
+    };
+
+    /**
+     * Wires the manual certificate button when present.
+     */
+    const setupManualCertificateButton = () => {
+        if (!state.config.canmanualcertificates) {
+            return;
+        }
+
+        const button = state.root.querySelector(SELECTORS.manualCertificate);
+        if (!button) {
+            return;
+        }
+
+        button.addEventListener('click', event => {
+            event.preventDefault();
+            openManualCertificateModal();
+        });
     };
 
     /**

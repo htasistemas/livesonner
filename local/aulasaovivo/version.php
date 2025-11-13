@@ -17,8 +17,8 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_aulasaovivo';
-$plugin->version   = 2024060101;
+$plugin->version   = 2024060102;
 $plugin->requires  = 2022041900;
 $plugin->maturity  = MATURITY_BETA;
-$plugin->release   = '1.1.1';
+$plugin->release   = '1.1.2';
 
