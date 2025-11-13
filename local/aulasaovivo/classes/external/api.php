@@ -264,6 +264,7 @@ class api extends external_api {
             'issuedatestring' => (string)($certificate['issuedatestring'] ?? ''),
             'fileurl' => (string)($certificate['fileurl'] ?? ''),
             'filename' => (string)($certificate['filename'] ?? ''),
+            'previewurl' => (string)($certificate['previewurl'] ?? ''),
         ];
     }
 
@@ -315,6 +316,7 @@ class api extends external_api {
             'issuedatestring' => new external_value(PARAM_TEXT, 'Formatted issuance date', VALUE_DEFAULT, ''),
             'fileurl' => new external_value(PARAM_URL, 'Download URL', VALUE_DEFAULT, ''),
             'filename' => new external_value(PARAM_FILE, 'Certificate filename', VALUE_DEFAULT, ''),
+            'previewurl' => new external_value(PARAM_URL, 'Certificate preview URL', VALUE_DEFAULT, ''),
         ]);
     }
 }

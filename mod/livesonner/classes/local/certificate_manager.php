@@ -57,6 +57,10 @@ class certificate_manager {
         require_once($CFG->dirroot . '/user/lib.php');
         require_once($CFG->libdir . '/pdflib.php');
 
+        if (!extension_loaded('imagick')) {
+            throw new moodle_exception('error:imagemagickmissing', 'mod_livesonner');
+        }
+
         $attendances = $DB->get_records('livesonner_attendance', ['livesonnerid' => $session->id], '', 'id, userid');
         if (!$attendances) {
             return 0;
@@ -117,19 +121,9 @@ class certificate_manager {
                 $instructor,
             ], $template);
 
-            $pdf = new \pdf();
-            $pdf->SetTitle($sessionname);
-            $pdf->setPrintHeader(false);
-            $pdf->setPrintFooter(false);
-            $pdf->SetMargins(0, 0, 0, true);
-            $pdf->SetAutoPageBreak(false, 0);
-            $pdf->AddPage('L', 'LETTER');
-            $pdf->writeHTML($html, true, false, true, false, '');
-            $pdf->lastPage();
-            $content = $pdf->Output('', 'S');
-            unset($pdf);
+            $content = self::generate_certificate_png($html, $sessionname);
 
-            $filename = clean_filename('certificado-' . $session->id . '-' . $userid . '.pdf');
+            $filename = clean_filename('certificado-' . $session->id . '-' . $userid . '.png');
 
             $record = $DB->get_record('livesonner_certificates', [
                 'livesonnerid' => $session->id,
@@ -198,6 +192,20 @@ class certificate_manager {
             $coursecontext = context_course::instance($record->courseid);
             $modulecontext = context_module::instance($record->cmid);
 
+            $fileurl = moodle_url::make_pluginfile_url(
+                $modulecontext->id,
+                'mod_livesonner',
+                self::FILEAREA,
+                $record->id,
+                '/',
+                $record->filename
+            )->out(false);
+
+            $previewurl = '';
+            if (preg_match('/\.png$/i', (string)$record->filename)) {
+                $previewurl = $fileurl;
+            }
+
             $certificates[] = [
                 'id' => (int)$record->id,
                 'sessionid' => (int)$record->livesonnerid,
@@ -205,15 +213,9 @@ class certificate_manager {
                 'coursename' => format_string($record->coursename, true, ['context' => $coursecontext]),
                 'issuedate' => (int)$record->timecreated,
                 'issuedatestring' => userdate($record->timecreated, get_string('strftimedatefullshort', 'core_langconfig')),
-                'fileurl' => moodle_url::make_pluginfile_url(
-                    $modulecontext->id,
-                    'mod_livesonner',
-                    self::FILEAREA,
-                    $record->id,
-                    '/',
-                    $record->filename
-                )->out(false),
+                'fileurl' => $fileurl,
                 'filename' => $record->filename,
+                'previewurl' => $previewurl,
             ];
         }
 
@@ -240,10 +242,10 @@ class certificate_manager {
         $filename = trim($name) !== '' ? $name : $file->get_filename();
         $filename = clean_filename($filename);
         if ($filename === '') {
-            $filename = 'certificado.pdf';
+            $filename = 'certificado.png';
         }
-        if (!preg_match('/\.pdf$/i', $filename)) {
-            $filename .= '.pdf';
+        if (!preg_match('/\.png$/i', $filename)) {
+            $filename .= '.png';
         }
 
         $now = time();
@@ -286,6 +288,20 @@ class certificate_manager {
         $coursecontext = context_course::instance($course->id);
         $modulecontext = context_module::instance($cm->id);
 
+        $fileurl = moodle_url::make_pluginfile_url(
+            $context->id,
+            'mod_livesonner',
+            self::FILEAREA,
+            $record->id,
+            '/',
+            $filename
+        )->out(false);
+
+        $previewurl = '';
+        if (preg_match('/\.png$/i', $filename)) {
+            $previewurl = $fileurl;
+        }
+
         return [
             'id' => $record->id,
             'sessionid' => $session->id,
@@ -293,16 +309,74 @@ class certificate_manager {
             'coursename' => format_string($course->fullname, true, ['context' => $coursecontext]),
             'issuedate' => $now,
             'issuedatestring' => userdate($now, get_string('strftimedatefullshort', 'core_langconfig')),
-            'fileurl' => moodle_url::make_pluginfile_url(
-                $context->id,
-                'mod_livesonner',
-                self::FILEAREA,
-                $record->id,
-                '/',
-                $filename
-            )->out(false),
+            'fileurl' => $fileurl,
             'filename' => $filename,
+            'previewurl' => $previewurl,
         ];
+    }
+
+    /**
+     * Generates the PNG binary contents for a certificate based on the HTML template.
+     *
+     * @param string $html
+     * @param string $sessionname
+     * @return string
+     * @throws moodle_exception When the PNG cannot be rendered
+     */
+    protected static function generate_certificate_png(string $html, string $sessionname): string {
+        global $CFG;
+
+        require_once($CFG->libdir . '/pdflib.php');
+
+        if (!extension_loaded('imagick')) {
+            throw new moodle_exception('error:imagemagickmissing', 'mod_livesonner');
+        }
+
+        $pdf = new \pdf();
+        $pdf->SetTitle($sessionname);
+        $pdf->setPrintHeader(false);
+        $pdf->setPrintFooter(false);
+        $pdf->SetMargins(0, 0, 0, true);
+        $pdf->SetAutoPageBreak(false, 0);
+        $pdf->AddPage('L', 'LETTER');
+        $pdf->writeHTML($html, true, false, true, false, '');
+        $pdf->lastPage();
+        $pdfcontents = $pdf->Output('', 'S');
+        unset($pdf);
+
+        try {
+            $imagick = new \Imagick();
+            $imagick->setResolution(300, 300);
+            $imagick->readImageBlob($pdfcontents);
+            $imagick->setIteratorIndex(0);
+            $imagick->setImageBackgroundColor('white');
+            if (method_exists($imagick, 'setImageAlphaChannel')) {
+                $imagick->setImageAlphaChannel(\Imagick::ALPHACHANNEL_REMOVE);
+            }
+            if (method_exists($imagick, 'mergeImageLayers')) {
+                $flattened = $imagick->mergeImageLayers(\Imagick::LAYERMETHOD_FLATTEN);
+                if ($flattened instanceof \Imagick) {
+                    $imagick = $flattened;
+                }
+            } else if (method_exists($imagick, 'flattenImages')) {
+                $flattened = $imagick->flattenImages();
+                if ($flattened instanceof \Imagick) {
+                    $imagick = $flattened;
+                }
+            }
+            $imagick->setImageFormat('png');
+            $imagick->setImageCompressionQuality(90);
+            $pngcontents = $imagick->getImageBlob();
+        } catch (\ImagickException $exception) {
+            throw new moodle_exception('error:imagemagickrender', 'mod_livesonner', '', null, $exception->getMessage());
+        } finally {
+            if (isset($imagick) && $imagick instanceof \Imagick) {
+                $imagick->clear();
+                $imagick->destroy();
+            }
+        }
+
+        return $pngcontents;
     }
 
     /**
