@@ -13,7 +13,8 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-define(['core/ajax', 'core/notification', 'core_form/modalform'], function(Ajax, Notification, ModalForm) {
+define(['core/ajax', 'core/notification', 'core_form/modalform', 'core/modal_events'],
+        function(Ajax, Notification, ModalForm, ModalEvents) {
     const SELECTORS = {
         panel: type => `.aulasaovivo__panel[data-panel="${type}"]`,
         panels: '.aulasaovivo__panel',
@@ -502,8 +503,12 @@ define(['core/ajax', 'core/notification', 'core_form/modalform'], function(Ajax,
         }
 
         if (manualCertificateModal) {
-            manualCertificateModal.destroy();
-            manualCertificateModal = null;
+            manualCertificateModal.show().catch(error => {
+                manualCertificateModal = null;
+                Notification.exception(error);
+                showToast(state.config.strings.manualcertificateerror);
+            });
+            return;
         }
 
         manualCertificateModal = new ModalForm({
@@ -514,14 +519,14 @@ define(['core/ajax', 'core/notification', 'core_form/modalform'], function(Ajax,
             }
         });
 
-        manualCertificateModal.addEventListener('form:submitted', event => {
+        manualCertificateModal.addEventListener(manualCertificateModal.events.FORM_SUBMITTED, event => {
             const detail = event && event.detail ? event.detail : {};
             const message = detail.message || state.config.strings.manualcertificatesuccess;
             showToast(message);
             refreshPanels('certificates');
         });
 
-        manualCertificateModal.addEventListener('hidden', () => {
+        manualCertificateModal.addEventListener(ModalEvents.destroyed, () => {
             manualCertificateModal = null;
         });
 
