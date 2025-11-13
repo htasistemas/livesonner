@@ -383,15 +383,31 @@ function mod_livesonner_painelaulas_collect_sessions(int $userid): array {
     $modinfocache = [];
 
     foreach ($records as $record) {
-        $coursecontext = context_course::instance($record->course);
-        $modulecontext = context_module::instance($record->cmid);
+        $coursecontext = context_course::instance($record->course, IGNORE_MISSING);
+        if (!$coursecontext) {
+            debugging('Missing course context for course ' . $record->course . ' when building the live classes catalogue.',
+                DEBUG_DEVELOPER);
+            continue;
+        }
+
+        $modulecontext = context_module::instance($record->cmid, IGNORE_MISSING);
+        if (!$modulecontext) {
+            debugging('Missing module context for activity ' . $record->cmid . ' when building the live classes catalogue.',
+                DEBUG_DEVELOPER);
+            continue;
+        }
 
         if (!$record->coursevisible && !has_capability('moodle/course:viewhiddencourses', $coursecontext, $userid, false)) {
             continue;
         }
 
         if (!array_key_exists($record->course, $modinfocache)) {
-            $modinfocache[$record->course] = get_fast_modinfo($record->course, $userid);
+            try {
+                $modinfocache[$record->course] = get_fast_modinfo($record->course, $userid);
+            } catch (dml_exception | moodle_exception $exception) {
+                debugging($exception->getMessage(), DEBUG_DEVELOPER);
+                continue;
+            }
         }
 
         $modinfo = $modinfocache[$record->course];
