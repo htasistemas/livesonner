@@ -86,20 +86,62 @@ define(['core/ajax', 'core/notification', 'core_form/modalform', 'core/modal_eve
      * @param {any} error
      * @returns {Error}
      */
+    const reportManualCertificateError = (original, normalised) => {
+        if (!window.console || typeof window.console.error !== 'function') {
+            return;
+        }
+
+        window.console.error('[local_aulasaovivo] Manual certificate modal error', {
+            original,
+            message: normalised && normalised.message ? normalised.message : undefined,
+            stack: normalised && normalised.stack ? normalised.stack : undefined,
+        });
+    };
+
     const normaliseModalError = error => {
-        if (error instanceof Error) {
+        if (error instanceof Error && error.message) {
             return error;
         }
 
         if (error && typeof error === 'object' && typeof error.message === 'string' && error.message) {
-            return error;
+            const enriched = new Error(error.message);
+            enriched.cause = error;
+            if (error.stack && !enriched.stack) {
+                enriched.stack = error.stack;
+            }
+            return enriched;
+        }
+
+        let extraMessage = '';
+        if (typeof error === 'string' && error.trim()) {
+            extraMessage = error.trim();
+        } else if (error && typeof error === 'object') {
+            try {
+                const serialisable = Object.keys(error).reduce((carry, key) => {
+                    const value = error[key];
+                    if (value !== undefined && value !== null && typeof value !== 'function') {
+                        carry[key] = value;
+                    }
+                    return carry;
+                }, {});
+                const json = JSON.stringify(serialisable);
+                if (json && json !== '{}') {
+                    extraMessage = json;
+                }
+            } catch (serializationError) {
+                extraMessage = '[object could not be serialised]';
+            }
         }
 
         const fallback = state.config && state.config.strings ?
             (state.config.strings.manualcertificateerror || state.config.strings.toastdefault || 'Error') :
             'Error';
 
-        return new Error(fallback);
+        const message = extraMessage ? `${fallback} (${extraMessage})` : fallback;
+        const normalised = new Error(message);
+        normalised.cause = error;
+
+        return normalised;
     };
 
     const DEFAULT_CONFIG = {
@@ -566,6 +608,7 @@ define(['core/ajax', 'core/notification', 'core_form/modalform', 'core/modal_eve
         if (manualCertificateModal) {
             manualCertificateModal.show().catch(error => {
                 const normalised = normaliseModalError(error);
+                reportManualCertificateError(error, normalised);
                 manualCertificateModal = null;
                 Notification.exception(normalised);
                 showToast(state.config.strings.manualcertificateerror);
@@ -601,6 +644,7 @@ define(['core/ajax', 'core/notification', 'core_form/modalform', 'core/modal_eve
 
         manualCertificateModal.show().catch(error => {
             const normalised = normaliseModalError(error);
+            reportManualCertificateError(error, normalised);
             manualCertificateModal = null;
             Notification.exception(normalised);
             showToast(state.config.strings.manualcertificateerror);
