@@ -38,6 +38,70 @@ define(['core/ajax', 'core/notification'], function(Ajax, Notification) {
         activePanel: 'catalog'
     };
 
+    const DEFAULT_CONFIG = {
+        services: {
+            catalog: null,
+            enrolled: null,
+            certificates: null
+        },
+        strings: {
+            emptycatalog: 'No live classes are available at the moment. Check back soon.',
+            emptyenrolled: 'You are not enrolled in any live class yet.',
+            emptycertificates: 'You do not have any certificates available yet.',
+            enrolsuccess: 'Enrolment completed successfully!',
+            enrolfailure: 'We could not complete your enrolment for this class.',
+            integrationmissing: 'Configure the class module integration to enable real enrolments.',
+            processing: 'Processing...',
+            countdownlabel: 'Starts in',
+            countdownlive: 'Live',
+            countdownfinished: 'Finished',
+            accesssession: 'Access class',
+            enrolsession: 'Enrol now',
+            sessionclosed: 'Class finished',
+            seemore: 'See details',
+            enrolledbadge: 'Enrolled',
+            confirmedbadge: 'Confirmed',
+            toastdefault: 'Update finished.',
+            certificateissuedon: 'Issued on',
+            certificatedownload: 'Download certificate',
+            fallbacknotice: 'Showing demo data. Connect the catalogue to your class module to load real sessions.',
+            startslabel: 'Date and time',
+            endslabel: 'End',
+            locationlabel: 'Location',
+            instructorlabel: 'Instructor',
+            taglabel: 'Track',
+            agendapast: 'Finished',
+            agendalive: 'Live now',
+            agendaunconfirmed: 'Upcoming'
+        },
+        user: {},
+        locale: 'pt-BR',
+        timezone: '99'
+    };
+
+    const normaliseConfig = config => {
+        const safe = config && typeof config === 'object' ? {...config} : {};
+
+        safe.services = Object.assign({}, DEFAULT_CONFIG.services,
+            safe.services && typeof safe.services === 'object' ? safe.services : {});
+
+        safe.strings = Object.assign({}, DEFAULT_CONFIG.strings,
+            safe.strings && typeof safe.strings === 'object' ? safe.strings : {});
+
+        safe.user = Object.assign({}, DEFAULT_CONFIG.user,
+            safe.user && typeof safe.user === 'object' ? safe.user : {});
+
+        if (!safe.locale || typeof safe.locale !== 'string') {
+            safe.locale = DEFAULT_CONFIG.locale;
+        }
+
+        if (typeof safe.timezone === 'undefined' || safe.timezone === null || safe.timezone === '') {
+            safe.timezone = DEFAULT_CONFIG.timezone;
+        }
+
+        return safe;
+    };
+
     let tabs = [];
     const initialisedRoots = new Set();
 
@@ -104,17 +168,15 @@ define(['core/ajax', 'core/notification'], function(Ajax, Notification) {
             return;
         }
 
-        const config = getConfigFromRoot(root);
-        if (!config) {
-            return;
-        }
+        const rawConfig = getConfigFromRoot(root);
+        const config = normaliseConfig(rawConfig);
 
         initialisedRoots.add(rootid);
 
         state = {
             root,
             config,
-            fallback: false,
+            fallback: !rawConfig,
             formatters: buildFormatters(config),
             activePanel: 'catalog'
         };
@@ -504,6 +566,17 @@ define(['core/ajax', 'core/notification'], function(Ajax, Notification) {
         } else {
             return Promise.resolve();
         }
+
+        if (!method) {
+            if (type === 'certificates') {
+                renderCertificates([]);
+            } else {
+                renderPanel(type, []);
+            }
+            state.fallback = true;
+            return Promise.resolve();
+        }
+
         const [request] = Ajax.call([{ methodname: method, args: {} }]);
 
         return request.then(response => {
