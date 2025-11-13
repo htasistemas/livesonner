@@ -59,7 +59,7 @@ class manual_certificate extends dynamic_form {
         $mform->setType('name', PARAM_TEXT);
 
         $mform->addElement('filepicker', 'certificate', get_string('manualcertificate:file', 'local_aulasaovivo'), null, [
-            'accepted_types' => ['.pdf'],
+            'accepted_types' => ['.png'],
             'maxbytes' => 0,
             'subdirs' => 0,
         ]);
@@ -171,7 +171,7 @@ class manual_certificate extends dynamic_form {
         }
 
         $file = reset($files);
-        if (!in_array($file->get_mimetype(), ['application/pdf', 'application/x-pdf'], true)) {
+        if (!in_array($file->get_mimetype(), ['image/png', 'image/x-png'], true)) {
             throw new moodle_exception('manualcertificate:invalidfiletype', 'local_aulasaovivo');
         }
 
