@@ -1,4 +1,3 @@
-<?php
 // This file is part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
@@ -24,157 +23,88 @@ use context_system;
 use core_form\dynamic_form;
 use mod_livesonner\local\certificate_manager;
 use moodle_exception;
+use moodle_url;
 use required_capability_exception;
 use stored_file;
 
 /**
- * Dynamic form that allows administrators to issue manual certificates.
- *
- * @package   local_aulasaovivo
- */
+* Dynamic form that allows administrators to issue manual certificates.
+*
+* @package   local_aulasaovivo
+*/
 class manual_certificate extends dynamic_form {
-    /**
-     * Form definition.
-     */
-    protected function definition(): void {
-        $mform = $this->_form;
+/**
+* Form definition.
+*/
+protected function definition(): void {
+$mform = $this->_form;
 
-        $mform->addElement('autocomplete', 'sessionid', get_string('manualcertificate:session', 'local_aulasaovivo'),
-            $this->get_session_options(), [
-                'placeholder' => get_string('manualcertificate:sessionplaceholder', 'local_aulasaovivo'),
-                'noselectionstring' => get_string('manualcertificate:sessionplaceholder', 'local_aulasaovivo'),
-            ]);
-        $mform->setType('sessionid', PARAM_INT);
-        $mform->addRule('sessionid', get_string('required'), 'required', null, 'client');
+$mform->addElement('autocomplete', 'sessionid', get_string('manualcertificate:session', 'local_aulasaovivo'),
+$this->get_session_options(), [
+'placeholder' => get_string('manualcertificate:sessionplaceholder', 'local_aulasaovivo'),
+'noselectionstring' => get_string('manualcertificate:sessionplaceholder', 'local_aulasaovivo'),
+]);
+$mform->setType('sessionid', PARAM_INT);
+$mform->addRule('sessionid', get_string('required'), 'required', null, 'client');
 
-        $mform->addElement('autocomplete', 'userid', get_string('manualcertificate:user', 'local_aulasaovivo'), [], [
-            'ajax' => 'core_user/form_user_selector',
-            'multiple' => false,
-            'placeholder' => get_string('manualcertificate:userplaceholder', 'local_aulasaovivo'),
-        ]);
-        $mform->setType('userid', PARAM_INT);
-        $mform->addRule('userid', get_string('required'), 'required', null, 'client');
+$mform->addElement('autocomplete', 'userid', get_string('manualcertificate:user', 'local_aulasaovivo'), [], [
+'ajax' => 'core_user/form_user_selector',
+@@ -55,50 +56,59 @@ class manual_certificate extends dynamic_form {
+$mform->setType('userid', PARAM_INT);
+$mform->addRule('userid', get_string('required'), 'required', null, 'client');
 
-        $mform->addElement('text', 'name', get_string('manualcertificate:name', 'local_aulasaovivo'));
-        $mform->setType('name', PARAM_TEXT);
+$mform->addElement('text', 'name', get_string('manualcertificate:name', 'local_aulasaovivo'));
+$mform->setType('name', PARAM_TEXT);
 
-        $mform->addElement('filepicker', 'certificate', get_string('manualcertificate:file', 'local_aulasaovivo'), null, [
-            'accepted_types' => ['.png'],
-            'maxbytes' => 0,
-            'subdirs' => 0,
-        ]);
-        $mform->addRule('certificate', get_string('required'), 'required', null, 'client');
+$mform->addElement('filepicker', 'certificate', get_string('manualcertificate:file', 'local_aulasaovivo'), null, [
+'accepted_types' => ['.png'],
+'maxbytes' => 0,
+'subdirs' => 0,
+]);
+$mform->addRule('certificate', get_string('required'), 'required', null, 'client');
 
-        $this->add_action_buttons(true, get_string('manualcertificate:submit', 'local_aulasaovivo'));
-    }
-
-    /**
-     * Returns the form submission context.
-     *
-     * @return context_system
-     */
-    protected function get_context_for_dynamic_submission(): context_system {
-        return context_system::instance();
-    }
-
-    /**
-     * Validates access prior to processing the form.
-     */
-    protected function check_access_for_dynamic_submission(): void {
-        $context = $this->get_context_for_dynamic_submission();
-        if (!has_capability('moodle/site:config', $context)) {
-            throw new required_capability_exception($context, 'moodle/site:config', 'nopermissions', 'manualcertificate');
-        }
-    }
-
-    /**
-     * Loads the form data when opened.
-     */
-    protected function set_data_for_dynamic_submission(): void {
-        // Nothing to preload.
-    }
-
-    /**
-     * Processes the submitted form data.
-     *
-     * @return array<string, string>
-     */
-    public function process_dynamic_submission(): array {
-        global $DB;
-
-        $data = (object)$this->get_data();
-        $context = $this->get_context_for_dynamic_submission();
-
-        $sessionid = (int)$data->sessionid;
-        $userid = (int)$data->userid;
-        $name = trim((string)($data->name ?? ''));
-        $draftid = (int)$data->certificate;
-
-        if (!$DB->record_exists('user', ['id' => $userid, 'deleted' => 0])) {
-            throw new moodle_exception('manualcertificate:invaliduser', 'local_aulasaovivo');
-        }
-
-        $draftfile = $this->get_draft_file($context->id, $draftid);
-        $certificate = certificate_manager::store_manual_certificate($sessionid, $userid, $draftfile, $name);
-
-        // Clean the draft area to prevent orphan files.
-        $fs = get_file_storage();
-        $fs->delete_area_files($context->id, 'user', 'draft', $draftid);
-
-        return [
-            'message' => get_string('manualcertificate:success', 'local_aulasaovivo', $certificate['sessionname']),
-        ];
-    }
-
-    /**
-     * Retrieves the available sessions for the selector.
-     *
-     * @return array<int, string>
-     */
-    protected function get_session_options(): array {
-        global $DB;
-
-        $records = $DB->get_records_sql("SELECT l.id, l.name, c.id AS courseid, c.fullname AS coursename, cm.id AS cmid
-                                             FROM {livesonner} l
-                                             JOIN {course} c ON c.id = l.course
-                                             JOIN {modules} m ON m.name = :modname
-                                             JOIN {course_modules} cm ON cm.instance = l.id AND cm.module = m.id
-                                            WHERE cm.deletioninprogress = 0
-                                         ORDER BY c.fullname, l.name", ['modname' => 'livesonner']);
-
-        $options = [];
-        foreach ($records as $record) {
-            $coursecontext = context_course::instance($record->courseid);
-            $modulecontext = context_module::instance($record->cmid);
-
-            $sessionname = format_string($record->name, true, ['context' => $modulecontext]);
-            $coursename = format_string($record->coursename, true, ['context' => $coursecontext]);
-
-            $options[$record->id] = $coursename . ' — ' . $sessionname;
-        }
-
-        return $options;
-    }
-
-    /**
-     * Returns the single file uploaded to the draft area.
-     *
-     * @param int $contextid
-     * @param int $draftid
-     * @return stored_file
-     */
-    protected function get_draft_file(int $contextid, int $draftid): stored_file {
-        $fs = get_file_storage();
-        $files = $fs->get_area_files($contextid, 'user', 'draft', $draftid, 'id DESC', false);
-        if (empty($files)) {
-            throw new moodle_exception('manualcertificate:missingfile', 'local_aulasaovivo');
-        }
-
-        $file = reset($files);
-        if (!in_array($file->get_mimetype(), ['image/png', 'image/x-png'], true)) {
-            throw new moodle_exception('manualcertificate:invalidfiletype', 'local_aulasaovivo');
-        }
-
-        return $file;
-    }
+$this->add_action_buttons(true, get_string('manualcertificate:submit', 'local_aulasaovivo'));
 }
+
+/**
+* Returns the form submission context.
+*
+* @return context_system
+*/
+protected function get_context_for_dynamic_submission(): context_system {
+return context_system::instance();
+}
+
+/**
+* Returns the page URL associated with the form submissions.
+*
+* @return moodle_url
+*/
+protected function get_page_url_for_dynamic_submission(): moodle_url {
+return new moodle_url('/local/aulasaovivo/index.php');
+}
+
+/**
+* Validates access prior to processing the form.
+*/
+protected function check_access_for_dynamic_submission(): void {
+$context = $this->get_context_for_dynamic_submission();
+if (!has_capability('moodle/site:config', $context)) {
+throw new required_capability_exception($context, 'moodle/site:config', 'nopermissions', 'manualcertificate');
+}
+}
+
+/**
+* Loads the form data when opened.
+*/
+protected function set_data_for_dynamic_submission(): void {
+// Nothing to preload.
+}
+
+/**
+* Processes the submitted form data.
+*
+* @return array<string, string>
+*/
+public function process_dynamic_submission(): array {
+global $DB;
