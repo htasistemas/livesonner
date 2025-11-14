@@ -98,6 +98,23 @@ define(['core/ajax', 'core/notification', 'core_form/modalform', 'core/modal_eve
         });
     };
 
+    const presentManualCertificateError = (error, normalised) => {
+        const details = {
+            message: normalised && normalised.message ? normalised.message :
+                (state.config.strings.manualcertificateerror || state.config.strings.toastdefault || 'Error'),
+            errorcode: normalised && normalised.name ? normalised.name : 'manualcertificateerror',
+        };
+
+        const stack = (normalised && normalised.stack) || (error && error.stack);
+        if (stack) {
+            details.debuginfo = stack;
+            details.stacktrace = stack.split('\n');
+        }
+
+        Notification.exception(details);
+        showToast(details.message);
+    };
+
     const normaliseModalError = error => {
         if (error instanceof Error && error.message) {
             return error;
@@ -610,19 +627,26 @@ define(['core/ajax', 'core/notification', 'core_form/modalform', 'core/modal_eve
                 const normalised = normaliseModalError(error);
                 reportManualCertificateError(error, normalised);
                 manualCertificateModal = null;
-                Notification.exception(normalised);
-                showToast(state.config.strings.manualcertificateerror);
+                presentManualCertificateError(error, normalised);
             });
             return;
         }
 
-        manualCertificateModal = new ModalForm({
-            formClass: 'local_aulasaovivo\\form\\manual_certificate',
-            args: {},
-            modalConfig: {
-                title: state.config.strings.manualcertificatetitle
-            }
-        });
+        try {
+            manualCertificateModal = new ModalForm({
+                formClass: 'local_aulasaovivo\\form\\manual_certificate',
+                args: {},
+                modalConfig: {
+                    title: state.config.strings.manualcertificatetitle
+                }
+            });
+        } catch (error) {
+            const normalised = normaliseModalError(error);
+            reportManualCertificateError(error, normalised);
+            manualCertificateModal = null;
+            presentManualCertificateError(error, normalised);
+            return;
+        }
 
         const events = getModalFormEvents(manualCertificateModal);
         const submittedEvent = getEventName(events, 'FORM_SUBMITTED', 'formSubmitted');
@@ -646,8 +670,7 @@ define(['core/ajax', 'core/notification', 'core_form/modalform', 'core/modal_eve
             const normalised = normaliseModalError(error);
             reportManualCertificateError(error, normalised);
             manualCertificateModal = null;
-            Notification.exception(normalised);
-            showToast(state.config.strings.manualcertificateerror);
+            presentManualCertificateError(error, normalised);
         });
     };
 
