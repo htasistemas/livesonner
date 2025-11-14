@@ -24,6 +24,7 @@ use context_system;
 use core_form\dynamic_form;
 use mod_livesonner\local\certificate_manager;
 use moodle_exception;
+use moodle_url;
 use required_capability_exception;
 use stored_file;
 
@@ -75,6 +76,15 @@ class manual_certificate extends dynamic_form {
      */
     protected function get_context_for_dynamic_submission(): context_system {
         return context_system::instance();
+    }
+
+    /**
+     * Returns the page URL associated with the form submissions.
+     *
+     * @return moodle_url
+     */
+    protected function get_page_url_for_dynamic_submission(): moodle_url {
+        return new moodle_url('/local/aulasaovivo/index.php');
     }
 
     /**
