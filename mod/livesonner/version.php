@@ -25,7 +25,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'mod_livesonner';
-$plugin->version   = 2024071500;
+$plugin->version   = 2025111600;
 $plugin->requires  = 2022041900; // Moodle 4.0 release.
 $plugin->maturity  = MATURITY_ALPHA;
-$plugin->release   = '0.3.0';
+$plugin->release   = '0.4.0';

@@ -1,5 +1,5 @@
 <?php
-// This file is part of Moodle - http://moodle.org/
+// This file is part of Moodle - http://moodle.org/.
 //
 // Moodle is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -263,7 +263,11 @@ function mod_livesonner_painelaulas_get_enrolments(int $userid): array {
 function mod_livesonner_painelaulas_get_certificates(int $userid): array {
     global $USER;
 
-    if ($USER->id !== $userid) {
+    $userid = (int)$userid;
+    $currentuserid = (int)$USER->id;
+
+    // Usuário só precisa de permissão especial se estiver consultando certificados de outra pessoa.
+    if ($userid !== $currentuserid) {
         $systemcontext = context_system::instance();
         require_capability('moodle/site:viewreports', $systemcontext);
     }
@@ -374,7 +378,14 @@ function mod_livesonner_painelaulas_collect_sessions(int $userid): array {
     $now = time();
     $registrations = $DB->get_records_menu('livesonner_enrolments', ['userid' => $userid], '', 'livesonnerid, timecreated');
 
-    $sql = "SELECT l.*, cm.id AS cmid, cm.visible AS cmvisible, c.fullname AS coursename,\n                   c.shortname AS courseshortname, c.visible AS coursevisible\n              FROM {livesonner} l\n        INNER JOIN {course} c ON c.id = l.course\n        INNER JOIN {modules} m ON m.name = :modname\n        INNER JOIN {course_modules} cm ON cm.instance = l.id AND cm.module = m.id\n             WHERE cm.deletioninprogress = 0\n          ORDER BY l.timestart ASC";
+    $sql = "SELECT l.*, cm.id AS cmid, cm.visible AS cmvisible, c.fullname AS coursename,
+                   c.shortname AS courseshortname, c.visible AS coursevisible
+              FROM {livesonner} l
+        INNER JOIN {course} c ON c.id = l.course
+        INNER JOIN {modules} m ON m.name = :modname
+        INNER JOIN {course_modules} cm ON cm.instance = l.id AND cm.module = m.id
+             WHERE cm.deletioninprogress = 0
+          ORDER BY l.timestart ASC";
 
     $records = $DB->get_records_sql($sql, ['modname' => 'livesonner']);
 

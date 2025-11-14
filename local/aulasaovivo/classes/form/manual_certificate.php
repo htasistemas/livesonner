@@ -21,6 +21,7 @@ defined('MOODLE_INTERNAL') || die();
 use context_course;
 use context_module;
 use context_system;
+use context_user;
 use core_form\dynamic_form;
 use mod_livesonner\local\certificate_manager;
 use moodle_exception;
@@ -71,8 +72,10 @@ class manual_certificate extends dynamic_form {
             ]);
         $mform->addRule('certificate', get_string('required'), 'required', null, 'client');
 
-        $this->add_action_buttons(true,
-            get_string('manualcertificate:submit', 'local_aulasaovivo'));
+        $this->add_action_buttons(
+            true,
+            get_string('manualcertificate:submit', 'local_aulasaovivo')
+        );
     }
 
     /**
@@ -121,12 +124,10 @@ class manual_certificate extends dynamic_form {
      *
      * @return array<string, string>
      */
-    public function process_dynamic_submission(): array {
-        global $DB;
+    public function process_dynamic_submission() {
+        global $DB, $USER;
 
         $data = (object)$this->get_data();
-        $context = $this->get_context_for_dynamic_submission();
-
         $sessionid = (int)$data->sessionid;
         $userid = (int)$data->userid;
         $name = trim((string)($data->name ?? ''));
@@ -136,7 +137,10 @@ class manual_certificate extends dynamic_form {
             throw new moodle_exception('manualcertificate:invaliduser', 'local_aulasaovivo');
         }
 
-        $draftfile = $this->get_draft_file($context->id, $draftid);
+        // Obtém o arquivo enviado na área de rascunho do usuário.
+        $draftfile = $this->get_draft_file($draftid);
+
+        // Persiste o certificado usando o gerenciador do módulo.
         $certificate = certificate_manager::store_manual_certificate(
             $sessionid,
             $userid,
@@ -144,9 +148,10 @@ class manual_certificate extends dynamic_form {
             $name
         );
 
-        // Clean the draft area to prevent orphan files.
+        // Limpa a área de rascunho do usuário para evitar arquivos órfãos.
         $fs = get_file_storage();
-        $fs->delete_area_files($context->id, 'user', 'draft', $draftid);
+        $usercontext = context_user::instance($USER->id);
+        $fs->delete_area_files($usercontext->id, 'user', 'draft', $draftid);
 
         return [
             'message' => get_string(
@@ -196,22 +201,26 @@ class manual_certificate extends dynamic_form {
     }
 
     /**
-     * Returns the single file uploaded to the draft area.
+     * Returns the single file uploaded to the user's draft area.
      *
-     * @param int $contextid
      * @param int $draftid
      * @return stored_file
      */
-    public function get_draft_file(int $contextid, int $draftid): stored_file {
+    public function get_draft_file(int $draftid): stored_file {
+        global $USER;
+
         $fs = get_file_storage();
+        $usercontext = context_user::instance($USER->id);
+
         $files = $fs->get_area_files(
-            $contextid,
+            $usercontext->id,
             'user',
             'draft',
             $draftid,
             'id DESC',
             false
         );
+
         if (empty($files)) {
             throw new moodle_exception('manualcertificate:missingfile', 'local_aulasaovivo');
         }
